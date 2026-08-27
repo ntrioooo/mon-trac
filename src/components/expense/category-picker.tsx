@@ -3,6 +3,7 @@
 import type { Category } from "@/types/category";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import { CategoryIcon } from "@/components/ui/category-icon";
 
 interface CategoryPickerProps {
   categories: Category[];
@@ -33,9 +34,13 @@ export function CategoryPicker({ categories, selected, onSelect }: CategoryPicke
                 <Check className="h-3 w-3" strokeWidth={3} />
               </div>
             )}
-            <span className="text-2xl" role="img" aria-label={category.name}>
-              {category.icon}
-            </span>
+            <div className="flex h-8 w-8 items-center justify-center">
+              <CategoryIcon
+                icon={category.icon}
+                color={category.color}
+                className="h-6 w-6"
+              />
+            </div>
             <span
               className={cn(
                 "text-xs leading-tight",

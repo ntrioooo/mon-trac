@@ -1,14 +1,16 @@
 "use client";
 
-import { useState } from "react";
-import { useSession, signOut } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
+import { transactionRepository } from "@/lib/repositories/transaction-repository";
+import { categoryRepository } from "@/lib/repositories/category-repository";
+import { settingsRepository } from "@/lib/repositories/settings-repository";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/transaction";
-import { formatCurrency, formatAmountInput, parseAmountInput } from "@/lib/utils";
-import { db } from "@/lib/db";
-import { initializeDatabase } from "@/lib/db";
+import { formatAmountInput, parseAmountInput } from "@/lib/utils";
 import {
   LogOut,
   Download,
@@ -22,9 +24,10 @@ import {
 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
+  const router = useRouter();
+  const [userProfile, setUserProfile] = useState<{ name?: string; email?: string } | null>(null);
+
   const settings = useSettingsStore((s) => s.settings);
-  const updateSettings = useSettingsStore((s) => s.updateSettings);
   const setMonthlyBudget = useSettingsStore((s) => s.setMonthlyBudget);
   const setDefaultPaymentMethod = useSettingsStore((s) => s.setDefaultPaymentMethod);
   const transactions = useTransactionStore((s) => s.transactions);
@@ -38,6 +41,28 @@ export default function SettingsPage() {
   );
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        setUserProfile({
+          name:
+            user.user_metadata?.full_name ||
+            user.user_metadata?.name ||
+            user.email?.split("@")[0] ||
+            "Pengguna",
+          email: user.email,
+        });
+      }
+    });
+  }, []);
+
+  const handleSignOut = async () => {
+    const supabase = createClient();
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
 
   // Export JSON
   const handleExportJSON = async () => {
@@ -78,17 +103,32 @@ export default function SettingsPage() {
           return;
         }
 
-        // Clear and import
-        await db.transactions.clear();
-        await db.categories.clear();
-        await db.settings.clear();
+        setImportStatus("Mengimpor data ke Supabase...");
 
-        if (data.categories?.length) await db.categories.bulkPut(data.categories);
-        if (data.transactions?.length) await db.transactions.bulkPut(data.transactions);
-        if (data.settings) await db.settings.put(data.settings);
+        if (data.categories?.length) {
+          for (const cat of data.categories) {
+            try {
+              await categoryRepository.create(cat);
+            } catch {
+              // ignore duplicate
+            }
+          }
+        }
+        if (data.transactions?.length) {
+          for (const txn of data.transactions) {
+            try {
+              await transactionRepository.create(txn);
+            } catch {
+              // ignore duplicate
+            }
+          }
+        }
+        if (data.settings) {
+          await settingsRepository.update(data.settings);
+        }
 
         await Promise.all([loadTransactions(), loadCategories(), loadSettings()]);
-        setImportStatus("Data berhasil diimpor");
+        setImportStatus("Data berhasil diimpor ke Supabase!");
       } catch {
         setImportStatus("Gagal mengimpor data. File tidak valid.");
       }
@@ -123,10 +163,9 @@ export default function SettingsPage() {
 
   // Clear all data
   const handleClearData = async () => {
-    await db.transactions.clear();
-    await db.categories.clear();
-    await db.settings.clear();
-    await initializeDatabase();
+    await transactionRepository.clear();
+    await categoryRepository.clear();
+    await settingsRepository.clear();
     await Promise.all([loadTransactions(), loadCategories(), loadSettings()]);
     setShowClearConfirm(false);
   };
@@ -152,16 +191,16 @@ export default function SettingsPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="truncate text-sm font-medium text-[var(--color-ink)]">
-              {session?.user?.name ?? "User"}
+              {userProfile?.name ?? "Pengguna"}
             </div>
             <div className="truncate text-xs text-[var(--color-muted)]">
-              {session?.user?.email}
+              {userProfile?.email}
             </div>
           </div>
         </div>
         <div className="border-t border-[var(--color-border)]">
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={handleSignOut}
             className="flex w-full items-center gap-3 px-4 py-3 text-sm text-[var(--color-rose)]"
           >
             <LogOut className="h-4 w-4" />
@@ -209,11 +248,10 @@ export default function SettingsPage() {
                 <button
                   key={value}
                   onClick={() => setDefaultPaymentMethod(value)}
-                  className={`rounded-lg border px-3 py-1.5 text-xs transition-colors ${
-                    settings.defaultPaymentMethod === value
-                      ? "border-[var(--color-emerald)] bg-emerald-50 text-[var(--color-emerald-deep)] font-medium"
-                      : "border-[var(--color-border)] text-[var(--color-slate)]"
-                  }`}
+                  className={`rounded-lg border px-3 py-1.5 text-xs transition-colors ${settings.defaultPaymentMethod === value
+                    ? "border-[var(--color-emerald)] bg-emerald-50 text-[var(--color-emerald-deep)] font-medium"
+                    : "border-[var(--color-border)] text-[var(--color-slate)]"
+                    }`}
                 >
                   {label}
                 </button>
@@ -249,13 +287,6 @@ export default function SettingsPage() {
         </div>
       )}
 
-      {/* Info */}
-      <p className="mb-8 text-center text-xs text-[var(--color-muted)]">
-        Data tersimpan secara lokal di perangkat.
-        <br />
-        Backup secara berkala untuk mencegah kehilangan data.
-      </p>
-
       {/* Clear Confirmation */}
       {showClearConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -265,7 +296,7 @@ export default function SettingsPage() {
               Hapus semua data?
             </h3>
             <p className="mb-5 text-sm text-[var(--color-slate)]">
-              Semua transaksi, kategori custom, dan pengaturan lokal akan dihapus.
+              Semua transaksi, kategori custom, dan pengaturan di akun Supabase Anda akan dihapus.
               Tindakan ini tidak dapat dibatalkan.
             </p>
             <div className="flex gap-3">
@@ -311,9 +342,8 @@ function SettingsButton({
   return (
     <button
       onClick={onClick}
-      className={`flex w-full items-center gap-3 px-4 py-3 text-sm ${
-        destructive ? "text-[var(--color-rose)]" : "text-[var(--color-ink)]"
-      }`}
+      className={`flex w-full items-center gap-3 px-4 py-3 text-sm ${destructive ? "text-[var(--color-rose)]" : "text-[var(--color-ink)]"
+        }`}
     >
       <Icon className="h-4 w-4" />
       <span className="flex-1 text-left">{label}</span>

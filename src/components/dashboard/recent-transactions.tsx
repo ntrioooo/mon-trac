@@ -5,6 +5,7 @@ import type { Transaction } from "@/types/transaction";
 import type { Category } from "@/types/category";
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
+import { CategoryIcon } from "@/components/ui/category-icon";
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
@@ -49,8 +50,12 @@ export function RecentTransactions({ transactions, categories }: RecentTransacti
               key={t.id}
               className="flex items-center gap-3 px-5 py-3"
             >
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-xl">
-                {category?.icon ?? "📦"}
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50">
+                <CategoryIcon
+                  icon={category?.icon ?? "Package"}
+                  color={category?.color}
+                  className="h-5 w-5"
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <div className="truncate text-sm font-medium text-[var(--color-ink)]">

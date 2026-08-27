@@ -1,8 +1,31 @@
 "use client";
 
-import { signIn } from "next-auth/react";
+import { useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 export default function LoginPage() {
+  const [isLoading, setIsLoading] = useState(false);
+  const supabase = createClient();
+
+  const handleGoogleLogin = async () => {
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        console.error("Login error:", error.message);
+        setIsLoading(false);
+      }
+    } catch (err) {
+      console.error("Unexpected login error:", err);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex min-h-dvh flex-col items-center justify-center bg-[var(--color-background)] px-6">
       <div className="w-full max-w-sm space-y-8">
@@ -22,8 +45,9 @@ export default function LoginPage() {
         {/* Login Card */}
         <div className="rounded-2xl bg-white p-6 shadow-sm">
           <button
-            onClick={() => signIn("google", { callbackUrl: "/" })}
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--color-border)] bg-white px-4 py-3.5 text-sm font-medium text-[var(--color-ink)] transition-colors hover:bg-gray-50 active:bg-gray-100"
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+            className="flex w-full items-center justify-center gap-3 rounded-xl border border-[var(--color-border)] bg-white px-4 py-3.5 text-sm font-medium text-[var(--color-ink)] transition-colors hover:bg-gray-50 active:bg-gray-100 disabled:opacity-60"
             id="google-login-button"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -44,13 +68,13 @@ export default function LoginPage() {
                 fill="#EA4335"
               />
             </svg>
-            Masuk dengan Google
+            {isLoading ? "Menghubungkan..." : "Masuk dengan Google"}
           </button>
         </div>
 
         {/* Footer */}
         <p className="text-center text-xs text-[var(--color-muted)]">
-          Data tersimpan secara lokal di perangkat Anda
+          Tersinkronisasi aman dengan akun Google Anda
         </p>
       </div>
     </div>

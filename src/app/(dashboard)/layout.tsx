@@ -1,16 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { SessionProvider } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { ExpenseSheet } from "@/components/expense/expense-sheet";
-import { initializeDatabase } from "@/lib/db";
+import { createClient } from "@/lib/supabase/client";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { Toast, useToast } from "@/components/ui/toast";
 
-function DashboardShell({ children }: { children: React.ReactNode }) {
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const router = useRouter();
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const { toast, showToast, hideToast } = useToast();
@@ -20,29 +25,53 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const loadSettings = useSettingsStore((s) => s.loadSettings);
 
   useEffect(() => {
+    const supabase = createClient();
+
     async function init() {
       try {
-        await initializeDatabase();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          router.push("/login");
+          return;
+        }
+
         await Promise.all([
           loadTransactions(),
           loadCategories(),
           loadSettings(),
         ]);
       } catch (error) {
-        console.error("Failed to initialize database:", error);
+        console.error("Failed to load initial data:", error);
       } finally {
         setIsReady(true);
       }
     }
+
     init();
-  }, [loadTransactions, loadCategories, loadSettings]);
+
+    // Listen to auth state changes (e.g. sign out)
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "SIGNED_OUT") {
+        router.push("/login");
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [loadTransactions, loadCategories, loadSettings, router]);
 
   if (!isReady) {
     return (
       <div className="flex min-h-dvh items-center justify-center">
         <div className="text-center">
           <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-[var(--color-emerald)] border-t-transparent" />
-          <p className="text-sm text-[var(--color-slate)]">Memuat...</p>
+          <p className="text-sm text-[var(--color-slate)]">Memuat data...</p>
         </div>
       </div>
     );
@@ -50,9 +79,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <main className="safe-bottom min-h-dvh pb-4">
-        {children}
-      </main>
+      <main className="safe-bottom min-h-dvh pb-4">{children}</main>
       <BottomNavigation onAddExpense={() => setExpenseOpen(true)} />
       <ExpenseSheet
         open={expenseOpen}
@@ -69,17 +96,5 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         />
       )}
     </>
-  );
-}
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <SessionProvider>
-      <DashboardShell>{children}</DashboardShell>
-    </SessionProvider>
   );
 }

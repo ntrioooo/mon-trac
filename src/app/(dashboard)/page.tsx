@@ -1,6 +1,7 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -21,7 +22,21 @@ import {
 import { getGreeting, formatMonthYear, getToday } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const { data: session } = useSession();
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) {
+        const name =
+          user.user_metadata?.full_name ||
+          user.user_metadata?.name ||
+          user.email?.split("@")[0] ||
+          "";
+        setUserName(name);
+      }
+    });
+  }, []);
   const transactions = useTransactionStore((s) => s.transactions);
   const categories = useCategoryStore((s) => s.categories);
   const settings = useSettingsStore((s) => s.settings);
@@ -47,7 +62,7 @@ export default function DashboardPage() {
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 5);
 
-  const firstName = session?.user?.name?.split(" ")[0] ?? "";
+  const firstName = userName ? userName.split(" ")[0] : "";
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-6">

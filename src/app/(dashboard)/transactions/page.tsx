@@ -10,6 +10,7 @@ import { formatCurrency, getRelativeDayLabel } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
 import { Search, Trash2, Edit3, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { CategoryIcon } from "@/components/ui/category-icon";
 
 export default function TransactionsPage() {
   const transactions = useTransactionStore((s) => s.transactions);
@@ -84,13 +85,14 @@ export default function TransactionsPage() {
             key={cat.id}
             onClick={() => setFilterCategory(cat.id)}
             className={cn(
-              "shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
+              "shrink-0 flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
               filterCategory === cat.id
                 ? "border-[var(--color-emerald)] bg-emerald-50 text-[var(--color-emerald-deep)]"
                 : "border-[var(--color-border)] text-[var(--color-slate)]"
             )}
           >
-            {cat.icon} {cat.name}
+            <CategoryIcon icon={cat.icon} color={cat.color} className="h-3.5 w-3.5" />
+            <span>{cat.name}</span>
           </button>
         ))}
       </div>
@@ -125,8 +127,12 @@ export default function TransactionsPage() {
                       key={t.id}
                       className="flex items-center gap-3 px-4 py-3"
                     >
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50 text-xl">
-                        {cat?.icon ?? "📦"}
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gray-50">
+                        <CategoryIcon
+                          icon={cat?.icon ?? "Package"}
+                          color={cat?.color}
+                          className="h-5 w-5"
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-medium text-[var(--color-ink)]">
