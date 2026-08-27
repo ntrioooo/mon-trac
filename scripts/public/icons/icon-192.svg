@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981" />
+      <stop offset="100%" stop-color="#047857" />
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5.76" stdDeviation="7.68" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+  
+  <!-- Background with rounded corners -->
+  <rect width="192" height="192" rx="42.24" fill="url(#bgGrad)" />
+  
+  <!-- Coin circle -->
+  <circle cx="96" cy="96" r="61.44" fill="#F59E0B" filter="url(#shadow)" stroke="#FEF3C7" stroke-width="3.84" />
+  <circle cx="96" cy="96" r="51.84" fill="none" stroke="#D97706" stroke-width="2.88" stroke-dasharray="5.76 2.88" />
+  
+  <!-- MT / Trend icon inside coin -->
+  <path d="M 72.96000000000001 119.03999999999999 L 72.96000000000001 84.48 L 88.32000000000001 101.76 L 103.68 84.48 L 103.68 119.03999999999999" 
+        fill="none" stroke="#FFFFFF" stroke-width="6.720000000000001" stroke-linecap="round" stroke-linejoin="round" />
+  <path d="M 103.68 86.4 L 122.88 71.03999999999999 M 122.88 71.03999999999999 L 111.35999999999999 71.03999999999999 M 122.88 71.03999999999999 L 122.88 82.56" 
+        fill="none" stroke="#FFFFFF" stroke-width="6.720000000000001" stroke-linecap="round" stroke-linejoin="round" />
+</svg>

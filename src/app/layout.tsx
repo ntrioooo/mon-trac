@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
+import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
 const inter = Inter({
@@ -12,6 +13,10 @@ export const metadata: Metadata = {
   title: "MoneyTrack",
   description: "Catat pengeluaran harian dengan cepat dan mudah",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/icons/icon-192.png",
+    apple: "/icons/apple-touch-icon.png",
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
@@ -35,6 +40,7 @@ export default function RootLayout({
   return (
     <html lang="id" className={inter.variable}>
       <body className="min-h-dvh bg-[var(--color-background)] antialiased">
+        <PwaRegister />
         {children}
       </body>
     </html>
