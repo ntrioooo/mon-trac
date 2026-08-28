@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-} from "recharts";
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { formatCurrency } from "@/lib/utils";
 import type { Category } from "@/types/category";
 
@@ -17,11 +12,10 @@ export function CategoryChart({ data }: CategoryChartProps) {
   const top5 = data.slice(0, 5);
 
   return (
-    <div className="mb-4 rounded-2xl bg-white p-5 shadow-sm">
-      <h3 className="mb-3 text-sm font-semibold text-[var(--color-ink)]">
-        Pengeluaran per Kategori
-      </h3>
-
+    <div className="mb-4 rounded-2xl border border-white/8 bg-[#181820] p-4">
+      <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        Per Kategori
+      </p>
       <div className="flex items-center gap-4">
         {/* Donut */}
         <div className="h-28 w-28 shrink-0">
@@ -30,7 +24,6 @@ export function CategoryChart({ data }: CategoryChartProps) {
               <Pie
                 data={top5}
                 dataKey="total"
-                nameKey="category.name"
                 cx="50%"
                 cy="50%"
                 innerRadius={30}
@@ -38,8 +31,8 @@ export function CategoryChart({ data }: CategoryChartProps) {
                 paddingAngle={2}
                 strokeWidth={0}
               >
-                {top5.map((entry, index) => (
-                  <Cell key={index} fill={entry.category.color} />
+                {top5.map((entry, i) => (
+                  <Cell key={i} fill={entry.category.color} />
                 ))}
               </Pie>
             </PieChart>
@@ -52,14 +45,14 @@ export function CategoryChart({ data }: CategoryChartProps) {
             <div key={item.category.id} className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <div
-                  className="h-2.5 w-2.5 shrink-0 rounded-full"
+                  className="h-2 w-2 shrink-0 rounded-full"
                   style={{ backgroundColor: item.category.color }}
                 />
-                <span className="truncate text-xs text-[var(--color-slate)]">
+                <span className="truncate text-xs text-slate-400">
                   {item.category.name}
                 </span>
               </div>
-              <span className="shrink-0 text-xs font-medium tabular-nums text-[var(--color-ink)]">
+              <span className="shrink-0 text-xs font-bold tabular-nums text-white">
                 {item.percentage}%
               </span>
             </div>

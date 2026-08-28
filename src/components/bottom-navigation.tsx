@@ -11,8 +11,8 @@ interface BottomNavigationProps {
 
 const navItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/transactions", label: "Transaksi", icon: Receipt },
-  { href: "/reports", label: "Laporan", icon: BarChart3 },
+  { href: "/transactions", label: "Aktivitas", icon: Receipt },
+  { href: "/reports", label: "Insights", icon: BarChart3 },
   { href: "/settings", label: "Pengaturan", icon: Settings },
 ];
 
@@ -20,7 +20,8 @@ export function BottomNavigation({ onAddExpense }: BottomNavigationProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-[var(--color-border)] bg-white/95 backdrop-blur-sm"
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-white/8"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="mx-auto flex h-[var(--nav-height)] max-w-lg items-center justify-around px-2">
@@ -40,11 +41,11 @@ export function BottomNavigation({ onAddExpense }: BottomNavigationProps) {
           isActive={pathname === navItems[1].href}
         />
 
-        {/* FAB — Center + button */}
+        {/* FAB — Center Golden Amber */}
         <div className="flex flex-col items-center">
           <button
             onClick={onAddExpense}
-            className="fab-shadow -mt-5 flex h-14 w-14 items-center justify-center rounded-full bg-[var(--color-emerald)] text-white transition-transform active:scale-95"
+            className="fab-shadow -mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-black transition-transform"
             aria-label="Tambah pengeluaran"
             id="add-expense-fab"
           >
@@ -87,13 +88,11 @@ function NavItem({
     <Link
       href={href}
       className={cn(
-        "flex min-w-[3rem] flex-col items-center gap-0.5 px-2 py-1 text-xs transition-colors",
-        isActive
-          ? "text-[var(--color-emerald)] font-medium"
-          : "text-[var(--color-muted)]"
+        "flex min-w-[3rem] flex-col items-center gap-0.5 px-2 py-1 text-[10px] font-semibold transition-colors",
+        isActive ? "text-[#F59E0B]" : "text-slate-500"
       )}
     >
-      <Icon className="h-5 w-5" />
+      <Icon className={cn("h-5 w-5", isActive && "drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]")} />
       <span>{label}</span>
     </Link>
   );

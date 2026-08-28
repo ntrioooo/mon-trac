@@ -10,7 +10,7 @@ import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { AmountInput } from "./amount-input";
 import { CategoryPicker } from "./category-picker";
-import { cn, getToday, formatCurrency } from "@/lib/utils";
+import { cn, getToday } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/transaction";
 
 interface ExpenseSheetProps {
@@ -22,7 +22,6 @@ interface ExpenseSheetProps {
 export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOptional, setShowOptional] = useState(false);
-  const overlayRef = useRef<HTMLDivElement>(null);
 
   const addTransaction = useTransactionStore((s) => s.addTransaction);
   const categories = useCategoryStore((s) => s.categories);
@@ -39,7 +38,6 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
     },
   });
 
-  // Reset form when opened
   useEffect(() => {
     if (open) {
       form.reset({
@@ -68,16 +66,10 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
         createdAt: now,
         updatedAt: now,
       });
-
-      // Update default payment method if changed
-      if (data.paymentMethod !== settings.defaultPaymentMethod) {
-        useSettingsStore.getState().setDefaultPaymentMethod(data.paymentMethod);
-      }
-
       onOpenChange(false);
       onSuccess?.();
     } catch {
-      // Error handled silently — local operation
+      // silent — local op
     } finally {
       setIsSubmitting(false);
     }
@@ -86,38 +78,40 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
   if (!open) return null;
 
   const amount = form.watch("amount");
-  const selectedCategory = form.watch("categoryId");
 
   return (
     <div className="fixed inset-0 z-50">
       {/* Overlay */}
       <div
-        ref={overlayRef}
-        className="animate-fade-in absolute inset-0 bg-black/40"
+        className="animate-fade-in absolute inset-0 bg-black/60"
         onClick={() => onOpenChange(false)}
       />
 
       {/* Sheet */}
-      <div className="animate-slide-up absolute bottom-0 left-0 right-0 max-h-[92dvh] overflow-y-auto rounded-t-2xl bg-white"
+      <div
+        className="animate-slide-up absolute bottom-0 left-0 right-0 max-h-[92dvh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#181820]"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
+        {/* Handle bar */}
+        <div className="flex justify-center pt-3 pb-1">
+          <div className="h-1 w-10 rounded-full bg-white/20" />
+        </div>
+
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between border-b border-[var(--color-border)] bg-white px-4 py-3">
-          <h2 className="text-lg font-semibold text-[var(--color-ink)]">
-            Tambah Pengeluaran
-          </h2>
+        <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
+          <h2 className="text-base font-bold text-white">Tambah Pengeluaran</h2>
           <button
             onClick={() => onOpenChange(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-full text-[var(--color-slate)] hover:bg-gray-100"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-slate-400 hover:bg-white/12"
             aria-label="Tutup"
           >
-            <X className="h-5 w-5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 py-4">
-          {/* Amount — The hero */}
-          <div className="mb-6">
+          {/* Amount */}
+          <div className="mb-5">
             <AmountInput
               value={amount}
               onChange={(val) => form.setValue("amount", val, { shouldValidate: true })}
@@ -127,16 +121,16 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
 
           {/* Category Picker */}
           <div className="mb-4">
-            <label className="mb-2 block text-sm font-medium text-[var(--color-slate)]">
+            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
               Kategori
-            </label>
+            </p>
             <CategoryPicker
               categories={categories}
-              selected={selectedCategory}
+              selected={form.watch("categoryId")}
               onSelect={(id) => form.setValue("categoryId", id, { shouldValidate: true })}
             />
             {form.formState.errors.categoryId && (
-              <p className="mt-1.5 text-xs text-[var(--color-rose)]">
+              <p className="mt-1.5 text-xs text-[#FF6B6B]">
                 {form.formState.errors.categoryId.message}
               </p>
             )}
@@ -147,81 +141,76 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
             <button
               type="button"
               onClick={() => setShowOptional(true)}
-              className="mb-4 flex items-center gap-2 text-sm text-[var(--color-slate)] hover:text-[var(--color-ink)]"
+              className="mb-4 flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300"
             >
-              <StickyNote className="h-4 w-4" />
-              Tambah catatan, ubah tanggal, atau metode pembayaran
+              <StickyNote className="h-3.5 w-3.5" />
+              Tambah catatan, tanggal, atau metode pembayaran
             </button>
           )}
 
-          {/* Optional Fields */}
+          {/* Optional fields */}
           {showOptional && (
             <div className="mb-4 space-y-3">
-              {/* Note */}
               <div>
-                <label className="mb-1 block text-sm font-medium text-[var(--color-slate)]">
-                  Catatan <span className="font-normal text-[var(--color-muted)]">(opsional)</span>
+                <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Catatan <span className="font-normal normal-case text-slate-600">(opsional)</span>
                 </label>
                 <input
                   {...form.register("note")}
                   type="text"
-                  placeholder="Makan siang di kantor"
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-ink)] placeholder:text-[var(--color-muted)] focus:border-[var(--color-emerald)] focus:outline-none focus:ring-1 focus:ring-[var(--color-emerald)]"
+                  placeholder="Makan siang di kantor..."
+                  className="w-full rounded-xl border border-white/8 bg-[#22222E] px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-white/20 focus:outline-none"
                 />
               </div>
 
-              {/* Date */}
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-[var(--color-slate)]">
-                  <Calendar className="h-4 w-4" /> Tanggal
+                <label className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <Calendar className="h-3.5 w-3.5" /> Tanggal
                 </label>
                 <input
                   {...form.register("date")}
                   type="date"
-                  className="w-full rounded-xl border border-[var(--color-border)] bg-white px-3.5 py-2.5 text-sm text-[var(--color-ink)] focus:border-[var(--color-emerald)] focus:outline-none focus:ring-1 focus:ring-[var(--color-emerald)]"
+                  className="w-full rounded-xl border border-white/8 bg-[#22222E] px-3.5 py-2.5 text-sm text-white focus:border-white/20 focus:outline-none [color-scheme:dark]"
                 />
               </div>
 
-              {/* Payment Method */}
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-sm font-medium text-[var(--color-slate)]">
-                  <CreditCard className="h-4 w-4" /> Metode Pembayaran
+                <label className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  <CreditCard className="h-3.5 w-3.5" /> Metode Pembayaran
                 </label>
                 <div className="flex flex-wrap gap-2">
-                  {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(
-                    ([value, label]) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => form.setValue("paymentMethod", value)}
-                        className={cn(
-                          "rounded-lg border px-3 py-1.5 text-sm transition-colors",
-                          form.watch("paymentMethod") === value
-                            ? "border-[var(--color-emerald)] bg-emerald-50 text-[var(--color-emerald-deep)] font-medium"
-                            : "border-[var(--color-border)] text-[var(--color-slate)] hover:border-gray-300"
-                        )}
-                      >
-                        {label}
-                      </button>
-                    )
-                  )}
+                  {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => form.setValue("paymentMethod", value)}
+                      className={cn(
+                        "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                        form.watch("paymentMethod") === value
+                          ? "border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B]"
+                          : "border-white/8 text-slate-500"
+                      )}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
           )}
 
-          {/* Save Button — Large, prominent, thumb-friendly */}
+          {/* Save Button */}
           <button
             type="submit"
             disabled={isSubmitting || amount === 0}
             className={cn(
-              "mt-2 w-full rounded-xl py-3.5 text-base font-semibold text-white transition-colors",
+              "mt-2 w-full rounded-xl py-3.5 text-sm font-bold transition-all",
               isSubmitting || amount === 0
-                ? "bg-gray-300 cursor-not-allowed"
-                : "bg-[var(--color-emerald)] hover:bg-[var(--color-emerald-deep)] active:bg-[var(--color-emerald-deep)]"
+                ? "cursor-not-allowed bg-white/8 text-slate-600"
+                : "bg-gradient-to-r from-amber-400 to-amber-600 text-black shadow-[0_0_16px_rgba(245,158,11,0.3)]"
             )}
           >
-            {isSubmitting ? "Menyimpan..." : "Simpan"}
+            {isSubmitting ? "Menyimpan..." : "Simpan Pengeluaran"}
           </button>
         </form>
       </div>

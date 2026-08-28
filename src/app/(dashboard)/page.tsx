@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { useSession } from "next-auth/react";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -19,24 +18,10 @@ import {
   calculateBudgetPercentage,
   getBudgetStatus,
 } from "@/lib/calculations/budget-calculations";
-import { getGreeting, formatMonthYear, getToday } from "@/lib/utils";
+import { getGreeting, formatMonthYear } from "@/lib/utils";
 
 export default function DashboardPage() {
-  const [userName, setUserName] = useState<string>("");
-
-  useEffect(() => {
-    const supabase = createClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      if (user) {
-        const name =
-          user.user_metadata?.full_name ||
-          user.user_metadata?.name ||
-          user.email?.split("@")[0] ||
-          "";
-        setUserName(name);
-      }
-    });
-  }, []);
+  const { data: session } = useSession();
   const transactions = useTransactionStore((s) => s.transactions);
   const categories = useCategoryStore((s) => s.categories);
   const settings = useSettingsStore((s) => s.settings);
@@ -45,11 +30,9 @@ export default function DashboardPage() {
   const currentYear = now.getFullYear();
   const currentMonth = now.getMonth();
 
-  // Filter current month transactions
   const prefix = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
   const monthTransactions = transactions.filter((t) => t.date.startsWith(prefix));
 
-  // Calculations
   const monthlySpending = calculateTotalSpending(monthTransactions);
   const todaySpending = calculateTodaySpending(transactions);
   const budgetRemaining = calculateBudgetRemaining(settings.monthlyBudget, monthlySpending);
@@ -57,23 +40,22 @@ export default function DashboardPage() {
   const budgetStatus = getBudgetStatus(settings.monthlyBudget, monthlySpending);
   const categorySpending = calculateCategorySpending(monthTransactions, categories);
 
-  // Recent 5 transactions
   const recentTransactions = [...transactions]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 5);
 
-  const firstName = userName ? userName.split(" ")[0] : "";
+  const firstName = session?.user?.name?.split(" ")[0] ?? "";
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-6">
       {/* Greeting */}
       <div className="mb-5">
-        <h1 className="text-lg font-semibold text-[var(--color-ink)]">
-          {getGreeting()} {firstName ? `${firstName}` : ""} 👋
-        </h1>
-        <p className="text-sm text-[var(--color-slate)]">
+        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
           {formatMonthYear(currentYear, currentMonth)}
         </p>
+        <h1 className="mt-0.5 text-xl font-extrabold tracking-tight text-white">
+          {getGreeting()}{firstName ? `, ${firstName}` : ""} 👋
+        </h1>
       </div>
 
       {/* Monthly Summary */}

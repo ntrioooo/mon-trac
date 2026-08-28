@@ -21,8 +21,10 @@ export function Toast({ message, type = "success", onClose, duration = 2500 }: T
     <div className="toast-enter fixed top-4 left-1/2 z-50 -translate-x-1/2">
       <div
         className={cn(
-          "flex items-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-white shadow-lg",
-          type === "success" ? "bg-[var(--color-emerald)]" : "bg-[var(--color-rose)]"
+          "flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl",
+          type === "success"
+            ? "border-[#10B981]/20 bg-[#22222E] text-[#10B981]"
+            : "border-[#FF6B6B]/20 bg-[#22222E] text-[#FF6B6B]"
         )}
       >
         {type === "success" ? (
@@ -30,8 +32,8 @@ export function Toast({ message, type = "success", onClose, duration = 2500 }: T
         ) : (
           <AlertCircle className="h-4 w-4 shrink-0" />
         )}
-        <span>{message}</span>
-        <button onClick={onClose} className="ml-1 shrink-0" aria-label="Tutup">
+        <span className="text-white">{message}</span>
+        <button onClick={onClose} className="ml-1 shrink-0 text-slate-500 hover:text-slate-300" aria-label="Tutup">
           <X className="h-3.5 w-3.5" />
         </button>
       </div>

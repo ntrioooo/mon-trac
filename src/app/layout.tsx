@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
+import { SessionProvider } from "next-auth/react";
 import { PwaRegister } from "@/components/pwa-register";
 import "./globals.css";
 
-const inter = Inter({
+const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-plus-jakarta-sans",
 });
 
 export const metadata: Metadata = {
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "default",
+    statusBarStyle: "black-translucent",
     title: "MoneyTrack",
   },
 };
@@ -29,7 +30,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#10B981",
+  themeColor: "#0D0D12",
 };
 
 export default function RootLayout({
@@ -38,10 +39,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={inter.variable}>
-      <body className="min-h-dvh bg-[var(--color-background)] antialiased">
-        <PwaRegister />
-        {children}
+    <html lang="id" className={plusJakartaSans.variable}>
+      <body className="min-h-dvh bg-[var(--color-background)] font-sans antialiased text-[var(--color-foreground)]">
+        <SessionProvider>
+          <PwaRegister />
+          {children}
+        </SessionProvider>
       </body>
     </html>
   );

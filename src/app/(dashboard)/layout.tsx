@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { BottomNavigation } from "@/components/bottom-navigation";
 import { ExpenseSheet } from "@/components/expense/expense-sheet";
-import { createClient } from "@/lib/supabase/client";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { Toast, useToast } from "@/components/ui/toast";
+import { initializeDatabase } from "@/lib/db";
 
 export default function DashboardLayout({
   children,
@@ -16,6 +17,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const { status } = useSession();
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const { toast, showToast, hideToast } = useToast();
@@ -25,53 +27,32 @@ export default function DashboardLayout({
   const loadSettings = useSettingsStore((s) => s.loadSettings);
 
   useEffect(() => {
-    const supabase = createClient();
-
-    async function init() {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-
-        if (!user) {
-          router.push("/login");
-          return;
-        }
-
-        await Promise.all([
-          loadTransactions(),
-          loadCategories(),
-          loadSettings(),
-        ]);
-      } catch (error) {
-        console.error("Failed to load initial data:", error);
-      } finally {
-        setIsReady(true);
-      }
+    if (status === "unauthenticated") {
+      router.push("/login");
+      return;
     }
 
-    init();
-
-    // Listen to auth state changes (e.g. sign out)
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === "SIGNED_OUT") {
-        router.push("/login");
+    if (status === "authenticated") {
+      async function init() {
+        try {
+          await initializeDatabase();
+          await Promise.all([loadTransactions(), loadCategories(), loadSettings()]);
+        } catch (error) {
+          console.error("Failed to load initial data:", error);
+        } finally {
+          setIsReady(true);
+        }
       }
-    });
+      init();
+    }
+  }, [status, loadTransactions, loadCategories, loadSettings, router]);
 
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [loadTransactions, loadCategories, loadSettings, router]);
-
-  if (!isReady) {
+  if (status === "loading" || !isReady) {
     return (
-      <div className="flex min-h-dvh items-center justify-center">
+      <div className="flex min-h-dvh items-center justify-center bg-[#0D0D12]">
         <div className="text-center">
-          <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-[var(--color-emerald)] border-t-transparent" />
-          <p className="text-sm text-[var(--color-slate)]">Memuat data...</p>
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-[#F59E0B] border-t-transparent" />
+          <p className="text-sm text-slate-400">Memuat data...</p>
         </div>
       </div>
     );
@@ -85,7 +66,7 @@ export default function DashboardLayout({
         open={expenseOpen}
         onOpenChange={setExpenseOpen}
         onSuccess={() => {
-          showToast("Pengeluaran tersimpan", "success");
+          showToast("Pengeluaran tersimpan ✓", "success");
         }}
       />
       {toast && (
