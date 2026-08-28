@@ -22,31 +22,28 @@ export function CategoryPicker({ categories, selected, onSelect }: CategoryPicke
             type="button"
             onClick={() => onSelect(category.id)}
             className={cn(
-              "relative flex flex-col items-center justify-center rounded-xl border p-2 transition-all active:scale-95",
+              "relative flex flex-col items-center justify-center rounded-2xl border p-2.5 transition-all active:scale-95",
               isSelected
-                ? "border-[#F59E0B] bg-[#F59E0B]/10 shadow-[0_0_12px_rgba(245,158,11,0.2)]"
-                : "border-white/5 bg-[#22222E] hover:border-white/10 hover:bg-[#2A2A38]"
+                ? "border-violet-600 bg-violet-50/70 shadow-xs"
+                : "border-transparent bg-transparent hover:bg-slate-50"
             )}
           >
             {isSelected && (
-              <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-[#F59E0B] shadow-md">
-                <Check className="h-2.5 w-2.5 text-black" strokeWidth={3} />
+              <div className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-violet-600 text-white shadow-xs">
+                <Check className="h-2.5 w-2.5" strokeWidth={3} />
               </div>
             )}
-            <div
-              className="flex h-9 w-9 items-center justify-center rounded-lg"
-              style={{ backgroundColor: `${category.color}20` }}
-            >
+            <div className="flex h-9 w-9 items-center justify-center">
               <CategoryIcon
                 icon={category.icon}
-                color={category.color}
-                className="h-5 w-5"
+                color="#7C3AED"
+                className="h-6 w-6"
               />
             </div>
             <span
               className={cn(
-                "mt-1 w-full truncate text-center text-[10px] font-semibold leading-tight",
-                isSelected ? "text-[#F59E0B]" : "text-slate-400"
+                "mt-1 w-full truncate text-center text-[10px] leading-tight",
+                isSelected ? "font-bold text-violet-700" : "font-semibold text-slate-600"
               )}
             >
               {category.name}

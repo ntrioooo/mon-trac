@@ -12,8 +12,8 @@ interface BottomNavigationProps {
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/transactions", label: "Aktivitas", icon: Receipt },
-  { href: "/reports", label: "Insights", icon: BarChart3 },
-  { href: "/settings", label: "Pengaturan", icon: Settings },
+  { href: "/reports", label: "Analytics", icon: BarChart3 },
+  { href: "/settings", label: "Account", icon: Settings },
 ];
 
 export function BottomNavigation({ onAddExpense }: BottomNavigationProps) {
@@ -21,10 +21,10 @@ export function BottomNavigation({ onAddExpense }: BottomNavigationProps) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-40 glass border-t border-white/8"
+      className="fixed bottom-0 left-0 right-0 z-40 pastel-nav-bar"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
-      <div className="mx-auto flex h-[var(--nav-height)] max-w-lg items-center justify-around px-2">
+      <div className="relative mx-auto flex h-[var(--nav-height)] max-w-lg items-center justify-around px-2">
         {/* Home */}
         <NavItem
           href={navItems[0].href}
@@ -41,19 +41,20 @@ export function BottomNavigation({ onAddExpense }: BottomNavigationProps) {
           isActive={pathname === navItems[1].href}
         />
 
-        {/* FAB — Center Golden Amber */}
-        <div className="flex flex-col items-center">
+        {/* Center Floating FAB (Violet) */}
+        <div className="relative flex flex-col items-center">
           <button
+            type="button"
             onClick={onAddExpense}
-            className="fab-shadow -mt-6 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-amber-400 to-amber-600 text-black transition-transform"
+            className="relative z-10 -mt-6 flex h-14 w-14 cursor-pointer items-center justify-center rounded-full bg-violet-600 text-white shadow-xl shadow-violet-500/35 transition-all hover:bg-violet-700 hover:scale-105 active:scale-95"
             aria-label="Tambah pengeluaran"
             id="add-expense-fab"
           >
-            <Plus className="h-7 w-7" strokeWidth={2.5} />
+            <Plus className="h-6 w-6 text-white" strokeWidth={2.5} />
           </button>
         </div>
 
-        {/* Reports */}
+        {/* Reports / Analytics */}
         <NavItem
           href={navItems[2].href}
           label={navItems[2].label}
@@ -61,7 +62,7 @@ export function BottomNavigation({ onAddExpense }: BottomNavigationProps) {
           isActive={pathname === navItems[2].href}
         />
 
-        {/* Settings */}
+        {/* Settings / Account */}
         <NavItem
           href={navItems[3].href}
           label={navItems[3].label}
@@ -88,11 +89,16 @@ function NavItem({
     <Link
       href={href}
       className={cn(
-        "flex min-w-[3rem] flex-col items-center gap-0.5 px-2 py-1 text-[10px] font-semibold transition-colors",
-        isActive ? "text-[#F59E0B]" : "text-slate-500"
+        "flex min-w-[3.25rem] flex-col items-center gap-1 px-2 py-1 text-[10px] font-semibold transition-colors",
+        isActive ? "text-[#7C3AED]" : "text-slate-400 hover:text-slate-600"
       )}
     >
-      <Icon className={cn("h-5 w-5", isActive && "drop-shadow-[0_0_6px_rgba(245,158,11,0.6)]")} />
+      <div className={cn(
+        "flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
+        isActive && "bg-violet-50 text-[#7C3AED]"
+      )}>
+        <Icon className="h-4 w-4" />
+      </div>
       <span>{label}</span>
     </Link>
   );

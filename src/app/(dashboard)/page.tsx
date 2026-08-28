@@ -1,6 +1,8 @@
 "use client";
 
 import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { Settings, Bell, Calendar } from "lucide-react";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -18,7 +20,7 @@ import {
   calculateBudgetPercentage,
   getBudgetStatus,
 } from "@/lib/calculations/budget-calculations";
-import { getGreeting, formatMonthYear } from "@/lib/utils";
+import { getGreeting, formatMonthYear, formatDate } from "@/lib/utils";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -45,44 +47,73 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   const firstName = session?.user?.name?.split(" ")[0] ?? "";
+  const todayFormatted = new Intl.DateTimeFormat("id-ID", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  }).format(now);
 
   return (
-    <div className="mx-auto max-w-lg px-4 pt-6">
-      {/* Greeting */}
-      <div className="mb-5">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-          {formatMonthYear(currentYear, currentMonth)}
-        </p>
-        <h1 className="mt-0.5 text-xl font-extrabold tracking-tight text-white">
-          {getGreeting()}{firstName ? `, ${firstName}` : ""} 👋
-        </h1>
+    <div className="min-h-dvh pb-8">
+      {/* Aurora Lavender Header */}
+      <div className="bg-aurora-header px-4 pt-6 pb-6 border-b border-violet-100/50">
+        <div className="mx-auto max-w-lg">
+          {/* Top Actions Bar */}
+          <div className="flex items-center justify-between mb-4">
+            <Link
+              href="/settings"
+              className="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur text-slate-700 hover:bg-white transition-colors"
+            >
+              <Settings className="h-4 w-4" />
+            </Link>
+
+            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 shadow-xs backdrop-blur text-xs font-semibold text-slate-700">
+              <Calendar className="h-3.5 w-3.5 text-violet-600" />
+              <span>{todayFormatted}</span>
+            </div>
+
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-white/80 shadow-sm backdrop-blur text-slate-700">
+              <Bell className="h-4 w-4" />
+            </div>
+          </div>
+
+          {/* Greeting */}
+          <div className="text-center">
+            <h1 className="text-sm font-bold text-slate-600">
+              {getGreeting()}{firstName ? `, ${firstName}` : ""} 👋
+            </h1>
+          </div>
+        </div>
       </div>
 
-      {/* Monthly Summary */}
-      <MonthlySummaryCard
-        spending={monthlySpending}
-        budget={settings.monthlyBudget}
-        remaining={budgetRemaining}
-        percentage={budgetPercentage}
-        status={budgetStatus}
-      />
+      {/* Main Content Body */}
+      <div className="mx-auto max-w-lg px-4 -mt-3 space-y-4">
+        {/* Monthly Summary Hero Card */}
+        <MonthlySummaryCard
+          spending={monthlySpending}
+          budget={settings.monthlyBudget}
+          remaining={budgetRemaining}
+          percentage={budgetPercentage}
+          status={budgetStatus}
+        />
 
-      {/* Quick Stats */}
-      <QuickStats
-        todaySpending={todaySpending}
-        transactionCount={monthTransactions.length}
-      />
+        {/* Quick Stats */}
+        <QuickStats
+          todaySpending={todaySpending}
+          transactionCount={monthTransactions.length}
+        />
 
-      {/* Category Chart */}
-      {categorySpending.length > 0 && (
-        <CategoryChart data={categorySpending} />
-      )}
+        {/* Category Chart */}
+        {categorySpending.length > 0 && (
+          <CategoryChart data={categorySpending} />
+        )}
 
-      {/* Recent Transactions */}
-      <RecentTransactions
-        transactions={recentTransactions}
-        categories={categories}
-      />
+        {/* Recent Transactions */}
+        <RecentTransactions
+          transactions={recentTransactions}
+          categories={categories}
+        />
+      </div>
     </div>
   );
 }

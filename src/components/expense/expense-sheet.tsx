@@ -91,35 +91,35 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
     <div className="fixed inset-0 z-50">
       {/* Overlay */}
       <div
-        className="animate-fade-in absolute inset-0 bg-black/60"
+        className="animate-fade-in absolute inset-0 bg-slate-900/50 backdrop-blur-xs"
         onClick={() => onOpenChange(false)}
       />
 
       {/* Sheet */}
       <div
-        className="animate-slide-up absolute bottom-0 left-0 right-0 max-h-[92dvh] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-[#181820]"
+        className="animate-slide-up absolute bottom-0 left-0 right-0 max-h-[92dvh] overflow-y-auto rounded-t-3xl border-t border-slate-100 bg-white shadow-2xl"
         style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       >
         {/* Handle bar */}
         <div className="flex justify-center pt-3 pb-1">
-          <div className="h-1 w-10 rounded-full bg-white/20" />
+          <div className="h-1.5 w-12 rounded-full bg-slate-200" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-white/8 px-4 py-3">
-          <h2 className="text-base font-bold text-white">Tambah Pengeluaran</h2>
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5">
+          <h2 className="text-base font-extrabold text-[#0F172A]">Tambah Pengeluaran</h2>
           <button
             onClick={() => onOpenChange(false)}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 text-slate-400 hover:bg-white/12"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
             aria-label="Tutup"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        <form onSubmit={form.handleSubmit(onSubmit)} className="px-4 py-4">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="px-5 py-4">
           {/* Amount */}
-          <div className="mb-5">
+          <div className="mb-4">
             <AmountInput
               value={amount}
               onChange={(val) => form.setValue("amount", val, { shouldValidate: true })}
@@ -129,8 +129,8 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
 
           {/* Category Picker */}
           <div className="mb-4">
-            <p className="mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Kategori
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Pilih Kategori
             </p>
             <CategoryPicker
               categories={categories}
@@ -138,7 +138,7 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
               onSelect={(id) => form.setValue("categoryId", id, { shouldValidate: true })}
             />
             {form.formState.errors.categoryId && (
-              <p className="mt-1.5 text-xs text-[#FF6B6B]">
+              <p className="mt-1.5 text-xs font-semibold text-rose-500">
                 {form.formState.errors.categoryId.message}
               </p>
             )}
@@ -149,7 +149,7 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
             <button
               type="button"
               onClick={() => setShowOptional(true)}
-              className="mb-4 flex items-center gap-2 text-xs text-slate-500 hover:text-slate-300"
+              className="mb-4 flex items-center gap-2 text-xs font-semibold text-violet-600 hover:text-violet-700"
             >
               <StickyNote className="h-3.5 w-3.5" />
               Tambah catatan, tanggal, atau metode pembayaran
@@ -158,33 +158,33 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
 
           {/* Optional fields */}
           {showOptional && (
-            <div className="mb-4 space-y-3">
+            <div className="mb-4 space-y-3 rounded-2xl bg-slate-50/80 p-4 border border-slate-100">
               <div>
-                <label className="mb-1 block text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  Catatan <span className="font-normal normal-case text-slate-600">(opsional)</span>
+                <label className="mb-1 block text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  Catatan <span className="font-normal normal-case text-slate-400">(opsional)</span>
                 </label>
                 <input
                   {...form.register("note")}
                   type="text"
-                  placeholder="Makan siang di kantor..."
-                  className="w-full rounded-xl border border-white/8 bg-[#22222E] px-3.5 py-2.5 text-sm text-white placeholder:text-slate-600 focus:border-white/20 focus:outline-none"
+                  placeholder="Makan siang, bensin, dll..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#0F172A] placeholder:text-slate-400 focus:border-violet-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="mb-1 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  <Calendar className="h-3.5 w-3.5" /> Tanggal
+                <label className="mb-1 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <Calendar className="h-3.5 w-3.5 text-violet-600" /> Tanggal
                 </label>
                 <input
                   {...form.register("date")}
                   type="date"
-                  className="w-full rounded-xl border border-white/8 bg-[#22222E] px-3.5 py-2.5 text-sm text-white focus:border-white/20 focus:outline-none [color-scheme:dark]"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-[#0F172A] focus:border-violet-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="mb-2 flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                  <CreditCard className="h-3.5 w-3.5" /> Metode Pembayaran
+                <label className="mb-2 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                  <CreditCard className="h-3.5 w-3.5 text-violet-600" /> Metode Pembayaran
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(([value, label]) => (
@@ -193,10 +193,10 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
                       type="button"
                       onClick={() => form.setValue("paymentMethod", value)}
                       className={cn(
-                        "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                        "rounded-xl border px-3 py-1.5 text-xs font-semibold transition-colors",
                         form.watch("paymentMethod") === value
-                          ? "border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B]"
-                          : "border-white/8 text-slate-500"
+                          ? "border-violet-600 bg-violet-50 text-violet-700 font-bold"
+                          : "border-slate-200 bg-white text-slate-600 hover:border-slate-300"
                       )}
                     >
                       {label}
@@ -207,18 +207,18 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
             </div>
           )}
 
-          {/* Save Button */}
+          {/* Save Button: Solid violet without gradient, text "Simpan" */}
           <button
             type="submit"
             disabled={isSubmitting || amount === 0}
             className={cn(
-              "mt-2 w-full rounded-xl py-3.5 text-sm font-bold transition-all",
+              "mt-2 w-full rounded-2xl py-3.5 text-sm font-extrabold transition-all shadow-md",
               isSubmitting || amount === 0
-                ? "cursor-not-allowed bg-white/8 text-slate-600"
-                : "bg-gradient-to-r from-amber-400 to-amber-600 text-black shadow-[0_0_16px_rgba(245,158,11,0.3)]"
+                ? "cursor-not-allowed bg-slate-100 text-slate-400 shadow-none"
+                : "bg-violet-600 hover:bg-violet-700 active:bg-violet-800 text-white shadow-violet-500/20 active:scale-[0.98]"
             )}
           >
-            {isSubmitting ? "Menyimpan..." : "Simpan Pengeluaran"}
+            {isSubmitting ? "Menyimpan..." : "Simpan"}
           </button>
         </form>
       </div>

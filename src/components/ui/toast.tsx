@@ -18,23 +18,27 @@ export function Toast({ message, type = "success", onClose, duration = 2500 }: T
   }, [onClose, duration]);
 
   return (
-    <div className="toast-enter fixed top-4 left-1/2 z-50 -translate-x-1/2">
+    <div className="toast-enter fixed top-5 left-1/2 z-50 -translate-x-1/2">
       <div
         className={cn(
-          "flex items-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl",
+          "flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 text-sm font-semibold shadow-xl shadow-slate-200/60",
           type === "success"
-            ? "border-[#10B981]/20 bg-[#22222E] text-[#10B981]"
-            : "border-[#FF6B6B]/20 bg-[#22222E] text-[#FF6B6B]"
+            ? "border-emerald-200 text-emerald-700"
+            : "border-rose-200 text-rose-700"
         )}
       >
         {type === "success" ? (
-          <CheckCircle className="h-4 w-4 shrink-0" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+            <CheckCircle className="h-4 w-4" />
+          </div>
         ) : (
-          <AlertCircle className="h-4 w-4 shrink-0" />
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-100 text-rose-600">
+            <AlertCircle className="h-4 w-4" />
+          </div>
         )}
-        <span className="text-white">{message}</span>
-        <button onClick={onClose} className="ml-1 shrink-0 text-slate-500 hover:text-slate-300" aria-label="Tutup">
-          <X className="h-3.5 w-3.5" />
+        <span className="text-slate-800 font-semibold">{message}</span>
+        <button onClick={onClose} className="ml-1.5 shrink-0 text-slate-400 hover:text-slate-600" aria-label="Tutup">
+          <X className="h-4 w-4" />
         </button>
       </div>
     </div>

@@ -110,7 +110,7 @@ interface CategoryIconProps {
 export function CategoryIcon({
   icon,
   className = "h-5 w-5",
-  color,
+  color = "#7C3AED",
 }: CategoryIconProps) {
   const key = (icon || "").trim();
   const IconComponent = CATEGORY_ICON_MAP[key] || CATEGORY_ICON_MAP[key.toLowerCase()] || Package;
@@ -118,7 +118,7 @@ export function CategoryIcon({
   return (
     <IconComponent
       className={className}
-      style={color ? { color } : undefined}
+      style={{ color }}
       strokeWidth={2}
     />
   );

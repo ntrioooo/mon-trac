@@ -120,44 +120,44 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-6 pb-8">
-      <h1 className="mb-5 text-xl font-extrabold tracking-tight text-white">Pengaturan</h1>
+      <h1 className="mb-5 text-2xl font-extrabold tracking-tight text-[#0F172A]">Pengaturan</h1>
 
       {/* Account */}
       <SectionTitle>Akun</SectionTitle>
-      <div className="mb-4 rounded-2xl border border-white/8 bg-[#181820]">
-        <div className="flex items-center gap-3 px-4 py-3.5">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-amber-500/10 text-[#F59E0B]">
+      <div className="pastel-card mb-5 overflow-hidden">
+        <div className="flex items-center gap-3 px-5 py-4">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
             <User className="h-5 w-5" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-semibold text-white">
+            <div className="truncate text-sm font-extrabold text-[#0F172A]">
               {session?.user?.name ?? "Pengguna"}
             </div>
-            <div className="truncate text-xs text-slate-500">{session?.user?.email}</div>
+            <div className="truncate text-xs font-medium text-slate-400">{session?.user?.email}</div>
           </div>
         </div>
-        <div className="border-t border-white/5">
+        <div className="border-t border-slate-100 bg-slate-50/50">
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold text-[#FF6B6B]"
+            className="flex w-full items-center gap-3 px-5 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50/50 transition-colors"
           >
             <LogOut className="h-4 w-4" />
-            Keluar
+            Keluar dari Akun
           </button>
         </div>
       </div>
 
       {/* Preferences */}
       <SectionTitle>Preferensi</SectionTitle>
-      <div className="mb-4 space-y-3">
+      <div className="mb-5 space-y-3">
         {/* Budget */}
-        <div className="rounded-2xl border border-white/8 bg-[#181820] p-4">
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-            <Target className="h-4 w-4 text-[#F59E0B]" />
+        <div className="pastel-card p-5">
+          <div className="mb-2 flex items-center gap-2 text-sm font-bold text-[#0F172A]">
+            <Target className="h-4 w-4 text-violet-600" />
             Anggaran Bulanan
           </div>
           <div className="relative">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-slate-500">Rp</span>
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-semibold text-slate-400">Rp</span>
             <input
               type="text"
               inputMode="numeric"
@@ -165,15 +165,15 @@ export default function SettingsPage() {
               onChange={(e) => setBudgetInput(e.target.value)}
               onBlur={handleSaveBudget}
               placeholder="0"
-              className="w-full rounded-xl border border-white/8 bg-[#22222E] py-2.5 pl-9 pr-3 text-sm tabular-nums text-white placeholder:text-slate-600 focus:border-[#F59E0B]/40 focus:outline-none"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pl-10 pr-3 text-sm font-bold tabular-nums text-[#0F172A] placeholder:text-slate-300 focus:border-violet-500 focus:bg-white focus:outline-none"
             />
           </div>
         </div>
 
         {/* Payment Method */}
-        <div className="rounded-2xl border border-white/8 bg-[#181820] p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-white">
-            <CreditCard className="h-4 w-4 text-[#F59E0B]" />
+        <div className="pastel-card p-5">
+          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[#0F172A]">
+            <CreditCard className="h-4 w-4 text-violet-600" />
             Metode Pembayaran Default
           </div>
           <div className="flex flex-wrap gap-2">
@@ -182,10 +182,10 @@ export default function SettingsPage() {
                 key={value}
                 onClick={() => setDefaultPaymentMethod(value)}
                 className={cn(
-                  "rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors",
+                  "rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors",
                   settings.defaultPaymentMethod === value
-                    ? "border-[#F59E0B]/40 bg-[#F59E0B]/10 text-[#F59E0B]"
-                    : "border-white/8 text-slate-500 hover:border-white/15"
+                    ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                 )}
               >
                 {label}
@@ -197,10 +197,10 @@ export default function SettingsPage() {
 
       {/* Data & Backup */}
       <SectionTitle>Data & Backup</SectionTitle>
-      <div className="mb-4 rounded-2xl border border-white/8 bg-[#181820] divide-y divide-white/5">
+      <div className="pastel-card mb-5 overflow-hidden divide-y divide-slate-100">
         <SettingsRow
           icon={isSyncing ? RefreshCw : Cloud}
-          label={isSyncing ? "Menyinkronkan ke Supabase..." : "Sinkronkan ke Cloud (Supabase)"}
+          label={isSyncing ? "Menyinkronkan..." : "Sync"}
           onClick={handleManualSync}
         />
         <SettingsRow icon={Download} label="Ekspor JSON" onClick={handleExportJSON} />
@@ -210,24 +210,24 @@ export default function SettingsPage() {
       </div>
 
       {importStatus && (
-        <div className="mb-4 flex items-center justify-between rounded-xl border border-[#10B981]/20 bg-[#10B981]/10 px-4 py-3">
-          <span className="text-sm text-[#10B981]">{importStatus}</span>
-          <button onClick={() => setImportStatus(null)} className="text-xs text-slate-500 underline">Tutup</button>
+        <div className="mb-5 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-xs">
+          <span className="text-sm font-semibold text-emerald-800">{importStatus}</span>
+          <button onClick={() => setImportStatus(null)} className="text-xs font-bold text-emerald-600 underline">Tutup</button>
         </div>
       )}
 
-      <p className="text-center text-xs text-slate-600">Data tersimpan secara lokal di perangkat.</p>
+      <p className="text-center text-xs font-medium text-slate-400">Data tersimpan secara lokal & tersinkron aman ke cloud.</p>
 
       {/* Clear Confirmation */}
       {showClearConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-black/60" onClick={() => setShowClearConfirm(false)} />
-          <div className="animate-fade-in relative mx-4 w-full max-w-sm rounded-2xl border border-white/10 bg-[#181820] p-6">
-            <h3 className="mb-2 text-base font-bold text-white">Hapus semua data?</h3>
-            <p className="mb-5 text-sm text-slate-400">Semua transaksi dan pengaturan lokal akan dihapus. Tidak dapat dibatalkan.</p>
+          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setShowClearConfirm(false)} />
+          <div className="animate-fade-in relative mx-4 w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
+            <h3 className="mb-2 text-base font-extrabold text-[#0F172A]">Hapus semua data?</h3>
+            <p className="mb-5 text-sm font-medium text-slate-500">Semua transaksi dan pengaturan lokal akan dihapus. Tindakan ini tidak dapat dibatalkan.</p>
             <div className="flex gap-3">
-              <button onClick={() => setShowClearConfirm(false)} className="flex-1 rounded-xl border border-white/10 py-2.5 text-sm font-semibold text-slate-400">Batal</button>
-              <button onClick={handleClearData} className="flex-1 rounded-xl bg-[#FF6B6B] py-2.5 text-sm font-bold text-white">Hapus Semua</button>
+              <button onClick={() => setShowClearConfirm(false)} className="flex-1 rounded-2xl border border-slate-200 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50">Batal</button>
+              <button onClick={handleClearData} className="flex-1 rounded-2xl bg-rose-500 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-rose-500/25 hover:bg-rose-600">Hapus Semua</button>
             </div>
           </div>
         </div>
@@ -237,15 +237,17 @@ export default function SettingsPage() {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-2 px-1 text-[10px] font-bold uppercase tracking-wider text-slate-500">{children}</h2>;
+  return <h2 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">{children}</h2>;
 }
 
 function SettingsRow({ icon: Icon, label, onClick, destructive = false }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; destructive?: boolean }) {
   return (
-    <button onClick={onClick} className={cn("flex w-full items-center gap-3 px-4 py-3 text-sm font-semibold", destructive ? "text-[#FF6B6B]" : "text-white")}>
-      <Icon className="h-4 w-4 shrink-0" />
+    <button onClick={onClick} className={cn("flex w-full items-center gap-3.5 px-5 py-3.5 text-sm font-bold transition-colors hover:bg-slate-50", destructive ? "text-rose-500" : "text-[#0F172A]")}>
+      <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl", destructive ? "bg-rose-50 text-rose-500" : "bg-slate-100 text-slate-600")}>
+        <Icon className="h-4 w-4 shrink-0" />
+      </div>
       <span className="flex-1 text-left">{label}</span>
-      <ChevronRight className="h-4 w-4 text-slate-600" />
+      <ChevronRight className="h-4 w-4 text-slate-300" />
     </button>
   );
 }

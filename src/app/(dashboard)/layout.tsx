@@ -72,10 +72,10 @@ export default function DashboardLayout({
 
   if (status === "loading" || !isReady) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-[#0D0D12]">
+      <div className="flex min-h-dvh items-center justify-center bg-aurora-header">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-2 border-[#F59E0B] border-t-transparent" />
-          <p className="text-sm text-slate-400">Memuat data...</p>
+          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-3 border-violet-600 border-t-transparent" />
+          <p className="text-sm font-semibold text-slate-600">Memuat MoneyTrack...</p>
         </div>
       </div>
     );

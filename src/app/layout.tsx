@@ -15,12 +15,12 @@ export const metadata: Metadata = {
   description: "Catat pengeluaran harian dengan cepat dan mudah",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icons/icon-192.png",
-    apple: "/icons/apple-touch-icon.png",
+    icon: "/icons/icon-logo.png",
+    apple: "/icons/icon-logo.png",
   },
   appleWebApp: {
     capable: true,
-    statusBarStyle: "black-translucent",
+    statusBarStyle: "default",
     title: "MoneyTrack",
   },
 };
@@ -30,7 +30,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0D0D12",
+  themeColor: "#F8FAFC",
 };
 
 export default function RootLayout({
