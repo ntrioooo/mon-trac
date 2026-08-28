@@ -3,15 +3,16 @@ import type { Settings } from "@/types/settings";
 import type { PaymentMethod } from "@/types/transaction";
 import { settingsRepository } from "@/lib/repositories/settings-repository";
 import { DEFAULT_SETTINGS } from "@/types/settings";
+import { syncEngine } from "@/lib/sync-engine";
 
 interface SettingsState {
   settings: Settings;
   isLoading: boolean;
 
   loadSettings: () => Promise<void>;
-  updateSettings: (data: Partial<Settings>) => Promise<void>;
-  setMonthlyBudget: (budget: number | undefined) => Promise<void>;
-  setDefaultPaymentMethod: (method: PaymentMethod) => Promise<void>;
+  updateSettings: (data: Partial<Settings>, userIdentifier?: string | null) => Promise<void>;
+  setMonthlyBudget: (budget: number | undefined, userIdentifier?: string | null) => Promise<void>;
+  setDefaultPaymentMethod: (method: PaymentMethod, userIdentifier?: string | null) => Promise<void>;
 }
 
 export const useSettingsStore = create<SettingsState>((set) => ({
@@ -28,24 +29,31 @@ export const useSettingsStore = create<SettingsState>((set) => ({
     }
   },
 
-  updateSettings: async (data: Partial<Settings>) => {
+  updateSettings: async (data: Partial<Settings>, userIdentifier?: string | null) => {
     await settingsRepository.update(data);
-    set((state) => ({
-      settings: { ...state.settings, ...data },
-    }));
+    const updated = await settingsRepository.get();
+    set({ settings: updated });
+    if (navigator.onLine) {
+      syncEngine.syncSettings(updated, userIdentifier);
+    }
   },
 
-  setMonthlyBudget: async (budget: number | undefined) => {
+  setMonthlyBudget: async (budget: number | undefined, userIdentifier?: string | null) => {
     await settingsRepository.update({ monthlyBudget: budget });
-    set((state) => ({
-      settings: { ...state.settings, monthlyBudget: budget },
-    }));
+    const updated = await settingsRepository.get();
+    set({ settings: updated });
+    if (navigator.onLine) {
+      syncEngine.syncSettings(updated, userIdentifier);
+    }
   },
 
-  setDefaultPaymentMethod: async (method: PaymentMethod) => {
+  setDefaultPaymentMethod: async (method: PaymentMethod, userIdentifier?: string | null) => {
     await settingsRepository.update({ defaultPaymentMethod: method });
-    set((state) => ({
-      settings: { ...state.settings, defaultPaymentMethod: method },
-    }));
+    const updated = await settingsRepository.get();
+    set({ settings: updated });
+    if (navigator.onLine) {
+      syncEngine.syncSettings(updated, userIdentifier);
+    }
   },
 }));
+

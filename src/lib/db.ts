@@ -9,6 +9,8 @@ export class MoneyTrackDB extends Dexie {
   transactions!: Table<Transaction, string>;
   categories!: Table<Category, string>;
   settings!: Table<Settings, string>;
+  syncedTxnIds!: Table<{ id: string; lastSyncedAt: string }, string>;
+  pendingDeletions!: Table<{ id: string; deletedAt: string }, string>;
 
   constructor() {
     super("MoneyTrackDB");
@@ -17,6 +19,14 @@ export class MoneyTrackDB extends Dexie {
       transactions: "id, date, categoryId, paymentMethod, createdAt",
       categories: "id, name, isDefault",
       settings: "id",
+    });
+
+    this.version(2).stores({
+      transactions: "id, date, categoryId, paymentMethod, createdAt",
+      categories: "id, name, isDefault",
+      settings: "id",
+      syncedTxnIds: "id, lastSyncedAt",
+      pendingDeletions: "id, deletedAt",
     });
   }
 }

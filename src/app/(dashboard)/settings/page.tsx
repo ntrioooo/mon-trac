@@ -57,9 +57,9 @@ export default function SettingsPage() {
     setIsSyncing(false);
 
     if (result.success) {
-      await loadTransactions();
+      await Promise.all([loadTransactions(), loadSettings()]);
       setImportStatus(
-        `✓ Berhasil disinkronkan (${result.count} data transaksi terkirim ke Supabase)`,
+        `✓ Berhasil disinkronkan (${result.count} data transaksi diproses)`,
       );
     } else {
       setImportStatus(
