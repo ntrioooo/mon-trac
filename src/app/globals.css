@@ -146,14 +146,14 @@ input[type="date"] {
   animation: fade-in 0.2s ease-out;
 }
 
-/* ── Toast ── */
-@keyframes toast-slide-in {
-  from { transform: translateY(-100%); opacity: 0; }
+/* ── Toast & Dropdown Slide Down ── */
+@keyframes slide-down {
+  from { transform: translateY(-24px); opacity: 0; }
   to { transform: translateY(0); opacity: 1; }
 }
 
-.toast-enter {
-  animation: toast-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+.animate-slide-down {
+  animation: slide-down 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* ── Budget progress bar ── */

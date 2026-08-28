@@ -66,17 +66,9 @@ export function PwaInstallModal() {
               1
             </div>
             <div className="text-xs text-slate-600">
-              {isIOS ? (
-                <span>
-                  Tap ikon <strong>Bagikan / Share</strong>{" "}
-                  <Share className="inline h-3.5 w-3.5 text-violet-600 align-text-bottom" />{" "}
-                  di bilah menu Safari (bawah layar).
-                </span>
-              ) : (
-                <span>
-                  Tap ikon <strong>Menu Titik Tiga (⋮)</strong> di pojok kanan atas browser.
-                </span>
-              )}
+              Tap ikon <strong>Bagikan / Share</strong>{" "}
+              <Share className="inline h-3.5 w-3.5 text-violet-600 align-text-bottom" />{" "}
+              atau <strong>Menu Titik Tiga (⋮)</strong> pada bilah menu browser.
             </div>
           </div>
 

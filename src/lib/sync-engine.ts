@@ -1,7 +1,6 @@
 import { supabase } from "@/lib/supabase/client";
 import { db } from "@/lib/db";
 import type { Transaction } from "@/types/transaction";
-import type { Category } from "@/types/category";
 import type { Settings } from "@/types/settings";
 import {
   encryptAmount,
@@ -82,7 +81,7 @@ export const syncEngine = {
   },
 
   /**
-   * Sync settings to Supabase.
+   * Sync settings (including monthlyBudget) to Supabase.
    */
   async syncSettings(settings: Settings, userIdentifier?: string | null): Promise<boolean> {
     if (typeof window === "undefined" || !navigator.onLine) return false;
@@ -99,16 +98,25 @@ export const syncEngine = {
         created_at: settings.createdAt || new Date().toISOString(),
         updated_at: new Date().toISOString(),
       });
-      return !error;
-    } catch {
+
+      if (error) {
+        console.warn("[SyncEngine] Failed to sync settings to Supabase:", error.message);
+        return false;
+      }
+
+      console.log("[SyncEngine] Settings synced to Supabase successfully.");
+      return true;
+    } catch (err) {
+      console.warn("[SyncEngine] Error syncing settings:", err);
       return false;
     }
   },
 
   /**
    * Full bidirectional sync:
-   * 1. Push all local data to Supabase (encrypted).
+   * 1. Push all local transactions & settings to Supabase (encrypted).
    * 2. Pull remote records from Supabase into local Dexie (decrypted client-side).
+   * 3. Pull remote settings from Supabase into local Dexie.
    */
   async syncAll(userIdentifier?: string | null): Promise<{ success: boolean; count: number; error?: string }> {
     if (typeof window === "undefined" || !navigator.onLine) {
@@ -119,7 +127,7 @@ export const syncEngine = {
       const secret = userIdentifier || "default_local_secret";
       const hashedUser = await hashUserId(secret);
 
-      console.log("[SyncEngine] Starting encrypted sync for user:", hashedUser);
+      console.log("[SyncEngine] Starting full encrypted sync for user:", hashedUser);
 
       // 1. Push local transactions
       const localTransactions = await db.transactions.toArray();
@@ -130,14 +138,20 @@ export const syncEngine = {
         if (synced) pushedCount++;
       }
 
-      // 2. Pull remote transactions
+      // 2. Push local settings
+      const localSettings = await db.settings.get("default_settings");
+      if (localSettings) {
+        await this.syncSettings(localSettings, secret);
+      }
+
+      // 3. Pull remote transactions
       const { data: remoteTransactions, error: pullError } = await supabase
         .from("transactions")
         .select("*")
         .eq("user_id", hashedUser);
 
       if (pullError) {
-        console.warn("[SyncEngine] Failed to pull from Supabase:", pullError.message);
+        console.warn("[SyncEngine] Failed to pull transactions from Supabase:", pullError.message);
         return { success: false, count: pushedCount, error: pullError.message };
       }
 
@@ -161,7 +175,32 @@ export const syncEngine = {
         }
       }
 
-      console.log("[SyncEngine] Full encrypted sync completed successfully. Synced:", pushedCount);
+      // 4. Pull remote settings (including monthly_budget)
+      const { data: remoteSettings, error: settingsPullError } = await supabase
+        .from("settings")
+        .select("*")
+        .eq("user_id", hashedUser)
+        .maybeSingle();
+
+      if (settingsPullError) {
+        console.warn("[SyncEngine] Failed to pull settings from Supabase:", settingsPullError.message);
+      } else if (remoteSettings) {
+        const remoteBudget = remoteSettings.monthly_budget !== null && remoteSettings.monthly_budget !== undefined
+          ? Number(remoteSettings.monthly_budget)
+          : undefined;
+
+        await db.settings.put({
+          id: "default_settings",
+          currency: remoteSettings.currency || "IDR",
+          monthlyBudget: remoteBudget,
+          defaultPaymentMethod: remoteSettings.default_payment_method || "cash",
+          createdAt: remoteSettings.created_at || new Date().toISOString(),
+          updatedAt: remoteSettings.updated_at || new Date().toISOString(),
+        });
+        console.log("[SyncEngine] Remote settings pulled and updated locally. Budget:", remoteBudget);
+      }
+
+      console.log("[SyncEngine] Full sync completed successfully. Transactions pushed:", pushedCount);
       return { success: true, count: pushedCount };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sync error";

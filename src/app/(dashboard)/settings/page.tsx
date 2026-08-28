@@ -9,8 +9,18 @@ import { usePwaStore } from "@/stores/pwa-store";
 import { db, initializeDatabase } from "@/lib/db";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/transaction";
 import {
-  LogOut, Download, Upload, FileSpreadsheet, Trash2,
-  ChevronRight, CreditCard, User, Cloud, RefreshCw, Smartphone, X,
+  LogOut,
+  Download,
+  Upload,
+  FileSpreadsheet,
+  Trash2,
+  ChevronRight,
+  CreditCard,
+  User,
+  Cloud,
+  RefreshCw,
+  Smartphone,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { syncEngine } from "@/lib/sync-engine";
@@ -20,7 +30,9 @@ export default function SettingsPage() {
   const { data: session } = useSession();
 
   const settings = useSettingsStore((s) => s.settings);
-  const setDefaultPaymentMethod = useSettingsStore((s) => s.setDefaultPaymentMethod);
+  const setDefaultPaymentMethod = useSettingsStore(
+    (s) => s.setDefaultPaymentMethod,
+  );
   const transactions = useTransactionStore((s) => s.transactions);
   const categories = useCategoryStore((s) => s.categories);
   const loadTransactions = useTransactionStore((s) => s.loadTransactions);
@@ -46,19 +58,32 @@ export default function SettingsPage() {
 
     if (result.success) {
       await loadTransactions();
-      setImportStatus(`✓ Berhasil disinkronkan (${result.count} data transaksi terkirim ke Supabase)`);
+      setImportStatus(
+        `✓ Berhasil disinkronkan (${result.count} data transaksi terkirim ke Supabase)`,
+      );
     } else {
-      setImportStatus(`Gagal sinkronisasi: ${result.error || "Cek koneksi internet"}`);
+      setImportStatus(
+        `Gagal sinkronisasi: ${result.error || "Cek koneksi internet"}`,
+      );
     }
   };
 
   const handleExportJSON = () => {
-    const data = { schemaVersion: 1, application: "MoneyTrack" as const, exportedAt: new Date().toISOString(), categories, transactions, settings };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+    const data = {
+      schemaVersion: 1,
+      application: "IngatMiskin" as const,
+      exportedAt: new Date().toISOString(),
+      categories,
+      transactions,
+      settings,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `moneytrack-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `ingatmiskin-backup-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -72,17 +97,28 @@ export default function SettingsPage() {
       if (!file) return;
       try {
         const data = JSON.parse(await file.text());
-        if (data.application !== "MoneyTrack" || !data.schemaVersion) {
-          setImportStatus("File bukan backup MoneyTrack yang valid");
+        if (
+          (data.application !== "IngatMiskin" &&
+            data.application !== "MoneyTrack" &&
+            data.application !== "Ingat Miskin") ||
+          !data.schemaVersion
+        ) {
+          setImportStatus("File bukan backup yang valid");
           return;
         }
         await db.transactions.clear();
         await db.categories.clear();
         await db.settings.clear();
-        if (data.categories?.length) await db.categories.bulkPut(data.categories);
-        if (data.transactions?.length) await db.transactions.bulkPut(data.transactions);
+        if (data.categories?.length)
+          await db.categories.bulkPut(data.categories);
+        if (data.transactions?.length)
+          await db.transactions.bulkPut(data.transactions);
         if (data.settings) await db.settings.put(data.settings);
-        await Promise.all([loadTransactions(), loadCategories(), loadSettings()]);
+        await Promise.all([
+          loadTransactions(),
+          loadCategories(),
+          loadSettings(),
+        ]);
         setImportStatus("✓ Data berhasil diimpor");
       } catch {
         setImportStatus("Gagal mengimpor data. File tidak valid.");
@@ -92,11 +128,24 @@ export default function SettingsPage() {
   };
 
   const handleExportCSV = () => {
-    const headers = ["Date", "Amount", "Category", "Note", "Payment Method", "Created At"];
+    const headers = [
+      "Date",
+      "Amount",
+      "Category",
+      "Note",
+      "Payment Method",
+      "Created At",
+    ];
     const rows = transactions.map((t) => {
       const cat = categories.find((c) => c.id === t.categoryId);
-      return [t.date, t.amount.toString(), cat?.name ?? "Unknown", t.note ?? "", PAYMENT_METHOD_LABELS[t.paymentMethod], t.createdAt]
-        .map((v) => `"${v.replace(/"/g, '""')}"`);
+      return [
+        t.date,
+        t.amount.toString(),
+        cat?.name ?? "Unknown",
+        t.note ?? "",
+        PAYMENT_METHOD_LABELS[t.paymentMethod],
+        t.createdAt,
+      ].map((v) => `"${v.replace(/"/g, '""')}"`);
     });
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
@@ -119,7 +168,9 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-6 pb-8">
-      <h1 className="mb-5 text-2xl font-extrabold tracking-tight text-[#0F172A]">Pengaturan</h1>
+      <h1 className="mb-5 text-2xl font-extrabold tracking-tight text-[#0F172A]">
+        Pengaturan
+      </h1>
 
       {/* Akses Cepat / Install PWA */}
       <SectionTitle>Aplikasi</SectionTitle>
@@ -157,7 +208,9 @@ export default function SettingsPage() {
             <div className="truncate text-sm font-extrabold text-[#0F172A]">
               {session?.user?.name ?? "Pengguna"}
             </div>
-            <div className="truncate text-xs font-medium text-slate-400">{session?.user?.email}</div>
+            <div className="truncate text-xs font-medium text-slate-400">
+              {session?.user?.email}
+            </div>
           </div>
         </div>
         <div className="border-t border-slate-100 bg-slate-50/50">
@@ -181,7 +234,9 @@ export default function SettingsPage() {
             Metode Pembayaran Default
           </div>
           <div className="flex flex-wrap gap-2">
-            {(Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]).map(([value, label]) => (
+            {(
+              Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]
+            ).map(([value, label]) => (
               <button
                 key={value}
                 onClick={() => setDefaultPaymentMethod(value)}
@@ -189,7 +244,7 @@ export default function SettingsPage() {
                   "rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer",
                   settings.defaultPaymentMethod === value
                     ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
                 )}
               >
                 {label}
@@ -207,20 +262,46 @@ export default function SettingsPage() {
           label={isSyncing ? "Menyinkronkan..." : "Sync"}
           onClick={handleManualSync}
         />
-        <SettingsRow icon={Download} label="Ekspor JSON" onClick={handleExportJSON} />
-        <SettingsRow icon={Upload} label="Impor JSON" onClick={handleImportJSON} />
-        <SettingsRow icon={FileSpreadsheet} label="Ekspor CSV" onClick={handleExportCSV} />
-        <SettingsRow icon={Trash2} label="Hapus semua data" onClick={() => setShowClearConfirm(true)} destructive />
+        <SettingsRow
+          icon={Download}
+          label="Ekspor JSON"
+          onClick={handleExportJSON}
+        />
+        <SettingsRow
+          icon={Upload}
+          label="Impor JSON"
+          onClick={handleImportJSON}
+        />
+        <SettingsRow
+          icon={FileSpreadsheet}
+          label="Ekspor CSV"
+          onClick={handleExportCSV}
+        />
+        <SettingsRow
+          icon={Trash2}
+          label="Hapus semua data"
+          onClick={() => setShowClearConfirm(true)}
+          destructive
+        />
       </div>
 
       {importStatus && (
         <div className="mb-5 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-xs">
-          <span className="text-sm font-semibold text-emerald-800">{importStatus}</span>
-          <button onClick={() => setImportStatus(null)} className="text-xs font-bold text-emerald-600 underline">Tutup</button>
+          <span className="text-sm font-semibold text-emerald-800">
+            {importStatus}
+          </span>
+          <button
+            onClick={() => setImportStatus(null)}
+            className="text-xs font-bold text-emerald-600 underline"
+          >
+            Tutup
+          </button>
         </div>
       )}
 
-      <p className="text-center text-xs font-medium text-slate-400">Data tersimpan secara lokal & tersinkron aman ke cloud.</p>
+      <p className="text-center text-xs font-medium text-slate-400">
+        Data tersimpan secara lokal & tersinkron aman ke cloud.
+      </p>
 
       {/* Clear Data Bottom Sheet Modal */}
       {showClearConfirm && (
@@ -239,7 +320,9 @@ export default function SettingsPage() {
             </div>
 
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-extrabold text-[#0F172A]">Hapus semua data?</h3>
+              <h3 className="text-base font-extrabold text-[#0F172A]">
+                Hapus semua data?
+              </h3>
               <button
                 onClick={() => setShowClearConfirm(false)}
                 className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
@@ -249,7 +332,8 @@ export default function SettingsPage() {
             </div>
 
             <p className="mb-6 text-sm font-medium text-slate-500">
-              Semua transaksi dan riwayat pengeluaran lokal akan dihapus secara permanen. Tindakan ini tidak dapat dibatalkan.
+              Semua transaksi dan riwayat pengeluaran lokal akan dihapus secara
+              permanen. Tindakan ini tidak dapat dibatalkan.
             </p>
 
             <div className="flex gap-3">
@@ -277,13 +361,40 @@ export default function SettingsPage() {
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h2 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">{children}</h2>;
+  return (
+    <h2 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+      {children}
+    </h2>
+  );
 }
 
-function SettingsRow({ icon: Icon, label, onClick, destructive = false }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; destructive?: boolean }) {
+function SettingsRow({
+  icon: Icon,
+  label,
+  onClick,
+  destructive = false,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  onClick: () => void;
+  destructive?: boolean;
+}) {
   return (
-    <button onClick={onClick} className={cn("flex w-full items-center gap-3.5 px-5 py-3.5 text-sm font-bold transition-colors hover:bg-slate-50 cursor-pointer", destructive ? "text-rose-500" : "text-[#0F172A]")}>
-      <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl", destructive ? "bg-rose-50 text-rose-500" : "bg-slate-100 text-slate-600")}>
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex w-full items-center gap-3.5 px-5 py-3.5 text-sm font-bold transition-colors hover:bg-slate-50 cursor-pointer",
+        destructive ? "text-rose-500" : "text-[#0F172A]",
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-8 w-8 items-center justify-center rounded-xl",
+          destructive
+            ? "bg-rose-50 text-rose-500"
+            : "bg-slate-100 text-slate-600",
+        )}
+      >
         <Icon className="h-4 w-4 shrink-0" />
       </div>
       <span className="flex-1 text-left">{label}</span>

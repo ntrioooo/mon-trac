@@ -32,7 +32,7 @@ const settingsImportSchema = z.object({
 
 export const backupSchema = z.object({
   schemaVersion: z.number().int().positive(),
-  application: z.literal("MoneyTrack"),
+  application: z.enum(["MoneyTrack", "IngatMiskin", "Ingat Miskin"]),
   exportedAt: z.string(),
   categories: z.array(categoryImportSchema),
   transactions: z.array(transactionImportSchema),

@@ -39,12 +39,16 @@ export default function DashboardLayout({
       async function init() {
         try {
           await initializeDatabase();
-          await Promise.all([loadTransactions(), loadCategories(), loadSettings()]);
-          
+          await Promise.all([
+            loadTransactions(),
+            loadCategories(),
+            loadSettings(),
+          ]);
+
           // Background Auto-Sync to/from Supabase
           if (navigator.onLine) {
             syncEngine.syncAll(userIdentifier).then(() => {
-              loadTransactions();
+              Promise.all([loadTransactions(), loadSettings()]);
             });
           }
         } catch (error) {
@@ -59,7 +63,7 @@ export default function DashboardLayout({
       const handleOnline = () => {
         console.log("[App] Network online. Triggering auto-sync...");
         syncEngine.syncAll(userIdentifier).then(() => {
-          loadTransactions();
+          Promise.all([loadTransactions(), loadSettings()]);
         });
       };
 
@@ -75,7 +79,9 @@ export default function DashboardLayout({
       <div className="flex min-h-dvh items-center justify-center bg-aurora-header">
         <div className="text-center">
           <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-3 border-violet-600 border-t-transparent" />
-          <p className="text-sm font-semibold text-slate-600">Memuat Ingat Miskin...</p>
+          <p className="text-sm font-semibold text-slate-600">
+            Memuat Ingat Miskin...
+          </p>
         </div>
       </div>
     );
@@ -89,15 +95,11 @@ export default function DashboardLayout({
         open={expenseOpen}
         onOpenChange={setExpenseOpen}
         onSuccess={() => {
-          showToast("Pengeluaran tersimpan ✓", "success");
+          showToast("Pengeluaran tersimpan", "success");
         }}
       />
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={hideToast}
-        />
+        <Toast message={toast.message} type={toast.type} onClose={hideToast} />
       )}
     </>
   );

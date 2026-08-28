@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useCallback, useState } from "react";
-import { CheckCircle, AlertCircle, X } from "lucide-react";
+import { CheckCircle2, AlertCircle, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ToastProps {
@@ -11,34 +11,48 @@ interface ToastProps {
   duration?: number;
 }
 
-export function Toast({ message, type = "success", onClose, duration = 2500 }: ToastProps) {
+export function Toast({ message, type = "success", onClose, duration = 2800 }: ToastProps) {
   useEffect(() => {
     const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
   return (
-    <div className="toast-enter fixed top-5 left-1/2 z-50 -translate-x-1/2">
+    <div className="fixed top-4 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 flex justify-center pointer-events-none">
       <div
         className={cn(
-          "flex items-center gap-2.5 rounded-2xl border bg-white px-4 py-3 text-sm font-semibold shadow-xl shadow-slate-200/60",
+          "animate-slide-down pointer-events-auto flex w-full max-w-sm sm:max-w-md items-center justify-between gap-3 rounded-2xl border bg-white/95 backdrop-blur-md px-4 py-3 shadow-xl transition-all",
           type === "success"
-            ? "border-emerald-200 text-emerald-700"
-            : "border-rose-200 text-rose-700"
+            ? "border-emerald-100 shadow-emerald-500/10 text-emerald-950"
+            : "border-rose-100 shadow-rose-500/10 text-rose-950"
         )}
       >
-        {type === "success" ? (
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-            <CheckCircle className="h-4 w-4" />
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div
+            className={cn(
+              "flex h-8 w-8 shrink-0 items-center justify-center rounded-xl",
+              type === "success"
+                ? "bg-emerald-50 text-emerald-600"
+                : "bg-rose-50 text-rose-600"
+            )}
+          >
+            {type === "success" ? (
+              <CheckCircle2 className="h-4.5 w-4.5" />
+            ) : (
+              <AlertCircle className="h-4.5 w-4.5" />
+            )}
           </div>
-        ) : (
-          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-rose-100 text-rose-600">
-            <AlertCircle className="h-4 w-4" />
-          </div>
-        )}
-        <span className="text-slate-800 font-semibold">{message}</span>
-        <button onClick={onClose} className="ml-1.5 shrink-0 text-slate-400 hover:text-slate-600" aria-label="Tutup">
-          <X className="h-4 w-4" />
+          <span className="text-xs sm:text-sm font-bold leading-snug truncate text-[#0F172A]">
+            {message}
+          </span>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition-colors cursor-pointer"
+          aria-label="Tutup"
+        >
+          <X className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>
