@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Calendar } from "lucide-react";
+import { Calendar, RefreshCw } from "lucide-react";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -22,16 +22,39 @@ import {
   calculateBudgetPercentage,
   getBudgetStatus,
 } from "@/lib/calculations/budget-calculations";
-import { getGreeting } from "@/lib/utils";
+import { getGreeting, cn } from "@/lib/utils";
+import { syncEngine } from "@/lib/sync-engine";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
   const transactions = useTransactionStore((s) => s.transactions);
   const categories = useCategoryStore((s) => s.categories);
   const settings = useSettingsStore((s) => s.settings);
+  const loadTransactions = useTransactionStore((s) => s.loadTransactions);
+  const loadSettings = useSettingsStore((s) => s.loadSettings);
 
   const [budgetOpen, setBudgetOpen] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { toast, showToast, hideToast } = useToast();
+
+  const handleRefresh = async () => {
+    if (isSyncing) return;
+    setIsSyncing(true);
+    const userIdentifier = session?.user?.email || session?.user?.id;
+    try {
+      const res = await syncEngine.syncAll(userIdentifier);
+      await Promise.all([loadTransactions(), loadSettings()]);
+      if (res.success) {
+        showToast("Data tersinkronkan ✓", "success");
+      } else {
+        showToast(`Gagal sinkron: ${res.error || "Cek koneksi"}`, "error");
+      }
+    } catch {
+      showToast("Gagal menyinkronkan data", "error");
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const now = new Date();
   const currentYear = now.getFullYear();
@@ -74,12 +97,31 @@ export default function DashboardPage() {
       {/* Aurora Lavender Header */}
       <div className="bg-aurora-header px-4 pt-6 pb-6 border-b border-violet-100/50">
         <div className="mx-auto max-w-lg">
-          {/* Top Date Badge */}
-          <div className="flex justify-center mb-4">
-            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/70 shadow-xs backdrop-blur text-xs font-semibold text-slate-700">
+          {/* Top Bar: Date Badge & Refresh Sync Button (justify-between) */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 shadow-xs backdrop-blur text-xs font-semibold text-slate-700">
               <Calendar className="h-3.5 w-3.5 text-violet-600" />
               <span>{todayFormatted}</span>
             </div>
+
+            <button
+              onClick={handleRefresh}
+              disabled={isSyncing}
+              className={cn(
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 shadow-xs backdrop-blur text-xs font-bold text-slate-700 hover:bg-white hover:text-violet-700 active:scale-95 transition-all cursor-pointer disabled:opacity-60",
+                isSyncing && "text-violet-600 bg-white"
+              )}
+              aria-label="Segarkan data"
+              id="btn-refresh-dashboard"
+            >
+              <RefreshCw
+                className={cn(
+                  "h-3.5 w-3.5 text-violet-600",
+                  isSyncing && "animate-spin"
+                )}
+              />
+              <span>{isSyncing ? "Menyinkronkan..." : "Segarkan"}</span>
+            </button>
           </div>
 
           {/* Greeting */}
