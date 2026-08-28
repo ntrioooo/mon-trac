@@ -3,6 +3,13 @@ import { db } from "@/lib/db";
 import type { Transaction } from "@/types/transaction";
 import type { Category } from "@/types/category";
 import type { Settings } from "@/types/settings";
+import {
+  encryptAmount,
+  decryptAmount,
+  encryptText,
+  decryptText,
+  hashUserId,
+} from "@/lib/crypto";
 
 export interface SyncStatus {
   isSyncing: boolean;
@@ -12,7 +19,7 @@ export interface SyncStatus {
 
 export const syncEngine = {
   /**
-   * Sync a single transaction to Supabase immediately.
+   * Sync a single transaction to Supabase with End-to-End Encryption (AES-GCM 256-bit).
    */
   async syncTransaction(transaction: Transaction, userIdentifier?: string | null): Promise<boolean> {
     if (typeof window === "undefined" || !navigator.onLine) {
@@ -20,13 +27,18 @@ export const syncEngine = {
     }
 
     try {
+      const secret = userIdentifier || "default_local_secret";
+      const hashedUser = await hashUserId(secret);
+      const encryptedAmount = await encryptAmount(transaction.amount, secret);
+      const encryptedNote = await encryptText(transaction.note, secret);
+
       const payload: Record<string, unknown> = {
         id: transaction.id,
-        user_id: userIdentifier || "default_user",
-        amount: transaction.amount,
+        user_id: hashedUser,
+        amount: encryptedAmount,
         type: transaction.type,
         category_id: transaction.categoryId,
-        note: transaction.note || null,
+        note: encryptedNote,
         date: transaction.date,
         payment_method: transaction.paymentMethod,
         created_at: transaction.createdAt || new Date().toISOString(),
@@ -36,11 +48,11 @@ export const syncEngine = {
       const { error } = await supabase.from("transactions").upsert(payload);
 
       if (error) {
-        console.warn("[SyncEngine] Failed to sync transaction to Supabase:", error.message);
+        console.warn("[SyncEngine] Failed to sync encrypted transaction to Supabase:", error.message);
         return false;
       }
 
-      console.log("[SyncEngine] Transaction synced to Supabase:", transaction.id);
+      console.log("[SyncEngine] Encrypted transaction synced to Supabase:", transaction.id);
       return true;
     } catch (err) {
       console.warn("[SyncEngine] Error syncing transaction to Supabase:", err);
@@ -75,11 +87,14 @@ export const syncEngine = {
   async syncSettings(settings: Settings, userIdentifier?: string | null): Promise<boolean> {
     if (typeof window === "undefined" || !navigator.onLine) return false;
     try {
+      const secret = userIdentifier || "default_local_secret";
+      const hashedUser = await hashUserId(secret);
+
       const { error } = await supabase.from("settings").upsert({
         id: settings.id || "default_settings",
-        user_id: userIdentifier || "default_user",
+        user_id: hashedUser,
         currency: settings.currency || "IDR",
-        monthly_budget: settings.monthlyBudget || null,
+        monthly_budget: settings.monthlyBudget ? Number(settings.monthlyBudget) : null,
         default_payment_method: settings.defaultPaymentMethod || "cash",
         created_at: settings.createdAt || new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -92,8 +107,8 @@ export const syncEngine = {
 
   /**
    * Full bidirectional sync:
-   * 1. Push all local data to Supabase.
-   * 2. Pull remote records from Supabase into local Dexie.
+   * 1. Push all local data to Supabase (encrypted).
+   * 2. Pull remote records from Supabase into local Dexie (decrypted client-side).
    */
   async syncAll(userIdentifier?: string | null): Promise<{ success: boolean; count: number; error?: string }> {
     if (typeof window === "undefined" || !navigator.onLine) {
@@ -101,15 +116,17 @@ export const syncEngine = {
     }
 
     try {
-      const userId = userIdentifier || "default_user";
-      console.log("[SyncEngine] Starting full sync for user:", userId);
+      const secret = userIdentifier || "default_local_secret";
+      const hashedUser = await hashUserId(secret);
+
+      console.log("[SyncEngine] Starting encrypted sync for user:", hashedUser);
 
       // 1. Push local transactions
       const localTransactions = await db.transactions.toArray();
       let pushedCount = 0;
 
       for (const t of localTransactions) {
-        const synced = await this.syncTransaction(t, userId);
+        const synced = await this.syncTransaction(t, secret);
         if (synced) pushedCount++;
       }
 
@@ -117,7 +134,7 @@ export const syncEngine = {
       const { data: remoteTransactions, error: pullError } = await supabase
         .from("transactions")
         .select("*")
-        .eq("user_id", userId);
+        .eq("user_id", hashedUser);
 
       if (pullError) {
         console.warn("[SyncEngine] Failed to pull from Supabase:", pullError.message);
@@ -126,12 +143,15 @@ export const syncEngine = {
 
       if (remoteTransactions && remoteTransactions.length > 0) {
         for (const remote of remoteTransactions) {
+          const decryptedAmount = await decryptAmount(remote.amount, secret);
+          const decryptedNote = await decryptText(remote.note, secret);
+
           const localItem: Transaction = {
             id: remote.id,
-            amount: Number(remote.amount),
+            amount: decryptedAmount,
             type: "expense",
             categoryId: remote.category_id,
-            note: remote.note || undefined,
+            note: decryptedNote || undefined,
             date: remote.date,
             paymentMethod: (remote.payment_method as "cash" | "bank" | "debit" | "credit" | "ewallet") || "cash",
             createdAt: remote.created_at,
@@ -141,7 +161,7 @@ export const syncEngine = {
         }
       }
 
-      console.log("[SyncEngine] Full sync completed successfully. Synced:", pushedCount);
+      console.log("[SyncEngine] Full encrypted sync completed successfully. Synced:", pushedCount);
       return { success: true, count: pushedCount };
     } catch (err) {
       const message = err instanceof Error ? err.message : "Sync error";
