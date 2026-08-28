@@ -7,6 +7,7 @@ import { groupTransactionsByDate } from "@/lib/calculations/transaction-calculat
 import { formatCurrency, getRelativeDayLabel } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
 import { Search, Trash2 } from "lucide-react";
+import { CategoryIcon } from "@/components/ui/category-icon";
 import { cn } from "@/lib/utils";
 
 export default function TransactionsPage() {
@@ -80,7 +81,7 @@ export default function TransactionsPage() {
                 : "border-white/8 text-slate-500"
             )}
           >
-            <span>{cat.icon}</span>
+            <CategoryIcon icon={cat.icon} color={cat.color} className="h-3.5 w-3.5" />
             <span>{cat.name}</span>
           </button>
         ))}
@@ -111,8 +112,15 @@ export default function TransactionsPage() {
                   const cat = categories.find((c) => c.id === t.categoryId);
                   return (
                     <div key={t.id} className="flex items-center gap-3 px-4 py-3">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#22222E] text-xl">
-                        {cat?.icon ?? "📦"}
+                      <div
+                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#22222E]"
+                        style={cat?.color ? { backgroundColor: `${cat.color}18` } : undefined}
+                      >
+                        <CategoryIcon
+                          icon={cat?.icon ?? "Package"}
+                          color={cat?.color}
+                          className="h-5 w-5"
+                        />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-semibold text-white">

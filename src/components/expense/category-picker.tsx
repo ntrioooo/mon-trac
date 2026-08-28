@@ -3,6 +3,7 @@
 import type { Category } from "@/types/category";
 import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
+import { CategoryIcon } from "@/components/ui/category-icon";
 
 interface CategoryPickerProps {
   categories: Category[];
@@ -21,7 +22,7 @@ export function CategoryPicker({ categories, selected, onSelect }: CategoryPicke
             type="button"
             onClick={() => onSelect(category.id)}
             className={cn(
-              "relative flex flex-col items-center gap-1 rounded-xl border-2 px-2 py-3 transition-all",
+              "relative flex flex-col items-center gap-1.5 rounded-xl border-2 px-2 py-3 transition-all",
               isSelected
                 ? "border-[#F59E0B]/60 bg-[#F59E0B]/10"
                 : "border-transparent bg-[#22222E] hover:bg-[#2A2A38]"
@@ -32,13 +33,16 @@ export function CategoryPicker({ categories, selected, onSelect }: CategoryPicke
                 <Check className="h-3 w-3 text-black" strokeWidth={3} />
               </div>
             )}
-            <span className="text-2xl" role="img" aria-label={category.name}>
-              {category.icon}
-            </span>
+            <div
+              className="flex h-8 w-8 items-center justify-center rounded-lg"
+              style={{ backgroundColor: `${category.color}20` }}
+            >
+              <CategoryIcon icon={category.icon} color={category.color} className="h-5 w-5" />
+            </div>
             <span
               className={cn(
-                "text-[10px] font-semibold leading-tight",
-                isSelected ? "text-[#F59E0B]" : "text-slate-500"
+                "text-[10px] font-semibold leading-tight text-center",
+                isSelected ? "text-[#F59E0B]" : "text-slate-400"
               )}
             >
               {category.name}
