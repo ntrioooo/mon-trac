@@ -5,15 +5,17 @@ import { useSession, signOut } from "next-auth/react";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
+import { usePwaStore } from "@/stores/pwa-store";
 import { db, initializeDatabase } from "@/lib/db";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/transaction";
 import { formatAmountInput, parseAmountInput } from "@/lib/utils";
 import {
   LogOut, Download, Upload, FileSpreadsheet, Trash2,
-  ChevronRight, CreditCard, Target, User, Cloud, RefreshCw,
+  ChevronRight, CreditCard, Target, User, Cloud, RefreshCw, Smartphone,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { syncEngine } from "@/lib/sync-engine";
+import { PwaInstallModal } from "@/components/ui/pwa-install-modal";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -27,12 +29,19 @@ export default function SettingsPage() {
   const loadCategories = useCategoryStore((s) => s.loadCategories);
   const loadSettings = useSettingsStore((s) => s.loadSettings);
 
+  const promptInstall = usePwaStore((s) => s.promptInstall);
+  const isStandalone = usePwaStore((s) => s.isStandalone);
+
   const [budgetInput, setBudgetInput] = useState(
     settings.monthlyBudget ? formatAmountInput(settings.monthlyBudget) : ""
   );
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleInstallClick = async () => {
+    await promptInstall();
+  };
 
   const handleManualSync = async () => {
     setIsSyncing(true);
@@ -122,6 +131,31 @@ export default function SettingsPage() {
     <div className="mx-auto max-w-lg px-4 pt-6 pb-8">
       <h1 className="mb-5 text-2xl font-extrabold tracking-tight text-[#0F172A]">Pengaturan</h1>
 
+      {/* Akses Cepat / Install PWA */}
+      <SectionTitle>Aplikasi</SectionTitle>
+      <div className="pastel-card mb-5 overflow-hidden">
+        <button
+          onClick={handleInstallClick}
+          className="flex w-full items-center gap-3.5 px-5 py-4 text-left transition-colors hover:bg-slate-50 cursor-pointer"
+          id="btn-install-a2hs"
+        >
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+            <Smartphone className="h-5 w-5" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-sm font-extrabold text-[#0F172A]">
+              Akses di Layar Utama
+            </div>
+            <div className="text-xs font-medium text-slate-400">
+              {isStandalone
+                ? "✓ Sudah terpasang di HP Anda"
+                : "Pasang icon di home screen untuk akses cepat"}
+            </div>
+          </div>
+          <ChevronRight className="h-4 w-4 text-slate-300" />
+        </button>
+      </div>
+
       {/* Account */}
       <SectionTitle>Akun</SectionTitle>
       <div className="pastel-card mb-5 overflow-hidden">
@@ -139,7 +173,7 @@ export default function SettingsPage() {
         <div className="border-t border-slate-100 bg-slate-50/50">
           <button
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-3 px-5 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50/50 transition-colors"
+            className="flex w-full items-center gap-3 px-5 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50/50 transition-colors cursor-pointer"
           >
             <LogOut className="h-4 w-4" />
             Keluar dari Akun
@@ -182,7 +216,7 @@ export default function SettingsPage() {
                 key={value}
                 onClick={() => setDefaultPaymentMethod(value)}
                 className={cn(
-                  "rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors",
+                  "rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer",
                   settings.defaultPaymentMethod === value
                     ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
                     : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -232,6 +266,9 @@ export default function SettingsPage() {
           </div>
         </div>
       )}
+
+      {/* PWA Install Modal */}
+      <PwaInstallModal />
     </div>
   );
 }
@@ -242,7 +279,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 
 function SettingsRow({ icon: Icon, label, onClick, destructive = false }: { icon: React.ComponentType<{ className?: string }>; label: string; onClick: () => void; destructive?: boolean }) {
   return (
-    <button onClick={onClick} className={cn("flex w-full items-center gap-3.5 px-5 py-3.5 text-sm font-bold transition-colors hover:bg-slate-50", destructive ? "text-rose-500" : "text-[#0F172A]")}>
+    <button onClick={onClick} className={cn("flex w-full items-center gap-3.5 px-5 py-3.5 text-sm font-bold transition-colors hover:bg-slate-50 cursor-pointer", destructive ? "text-rose-500" : "text-[#0F172A]")}>
       <div className={cn("flex h-8 w-8 items-center justify-center rounded-xl", destructive ? "bg-rose-50 text-rose-500" : "bg-slate-100 text-slate-600")}>
         <Icon className="h-4 w-4 shrink-0" />
       </div>

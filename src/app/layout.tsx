@@ -11,7 +11,7 @@ const plusJakartaSans = Plus_Jakarta_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "MoneyTrack",
+  title: "IngatMiskin",
   description: "Catat pengeluaran harian dengan cepat dan mudah",
   manifest: "/manifest.webmanifest",
   icons: {
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "MoneyTrack",
+    title: "IngatMiskin",
   },
 };
 
