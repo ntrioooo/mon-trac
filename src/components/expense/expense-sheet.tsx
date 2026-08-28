@@ -10,7 +10,8 @@ import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { AmountInput } from "./amount-input";
 import { CategoryPicker } from "./category-picker";
-import { cn, getToday } from "@/lib/utils";
+import { cn, getToday, generateId } from "@/lib/utils";
+import { useSession } from "next-auth/react";
 import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/transaction";
 
 interface ExpenseSheetProps {
@@ -38,6 +39,8 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
     },
   });
 
+  const { data: session } = useSession();
+
   useEffect(() => {
     if (open) {
       form.reset({
@@ -55,21 +58,26 @@ export function ExpenseSheet({ open, onOpenChange, onSuccess }: ExpenseSheetProp
     setIsSubmitting(true);
     try {
       const now = new Date().toISOString();
-      await addTransaction({
-        id: crypto.randomUUID(),
-        amount: data.amount,
-        type: "expense",
-        categoryId: data.categoryId,
-        note: data.note || undefined,
-        date: data.date,
-        paymentMethod: data.paymentMethod,
-        createdAt: now,
-        updatedAt: now,
-      });
+      const userIdentifier = session?.user?.email || session?.user?.id || "local-user";
+
+      await addTransaction(
+        {
+          id: generateId(),
+          amount: data.amount,
+          type: "expense",
+          categoryId: data.categoryId,
+          note: data.note || undefined,
+          date: data.date,
+          paymentMethod: data.paymentMethod,
+          createdAt: now,
+          updatedAt: now,
+        },
+        userIdentifier
+      );
       onOpenChange(false);
       onSuccess?.();
-    } catch {
-      // silent — local op
+    } catch (err) {
+      console.error("Failed to insert transaction:", err);
     } finally {
       setIsSubmitting(false);
     }

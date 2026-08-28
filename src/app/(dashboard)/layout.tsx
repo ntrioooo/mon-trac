@@ -10,6 +10,7 @@ import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
 import { Toast, useToast } from "@/components/ui/toast";
 import { initializeDatabase } from "@/lib/db";
+import { syncEngine } from "@/lib/sync-engine";
 
 export default function DashboardLayout({
   children,
@@ -17,7 +18,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [expenseOpen, setExpenseOpen] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const { toast, showToast, hideToast } = useToast();
@@ -33,10 +34,19 @@ export default function DashboardLayout({
     }
 
     if (status === "authenticated") {
+      const userIdentifier = session?.user?.email || session?.user?.id;
+
       async function init() {
         try {
           await initializeDatabase();
           await Promise.all([loadTransactions(), loadCategories(), loadSettings()]);
+          
+          // Background Auto-Sync to/from Supabase
+          if (navigator.onLine) {
+            syncEngine.syncAll(userIdentifier).then(() => {
+              loadTransactions();
+            });
+          }
         } catch (error) {
           console.error("Failed to load initial data:", error);
         } finally {
@@ -44,8 +54,21 @@ export default function DashboardLayout({
         }
       }
       init();
+
+      // Listen for reconnect event
+      const handleOnline = () => {
+        console.log("[App] Network online. Triggering auto-sync...");
+        syncEngine.syncAll(userIdentifier).then(() => {
+          loadTransactions();
+        });
+      };
+
+      window.addEventListener("online", handleOnline);
+      return () => {
+        window.removeEventListener("online", handleOnline);
+      };
     }
-  }, [status, loadTransactions, loadCategories, loadSettings, router]);
+  }, [status, session, loadTransactions, loadCategories, loadSettings, router]);
 
   if (status === "loading" || !isReady) {
     return (

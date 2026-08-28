@@ -10,9 +10,10 @@ import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/transaction";
 import { formatAmountInput, parseAmountInput } from "@/lib/utils";
 import {
   LogOut, Download, Upload, FileSpreadsheet, Trash2,
-  ChevronRight, CreditCard, Target, User,
+  ChevronRight, CreditCard, Target, User, Cloud, RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { syncEngine } from "@/lib/sync-engine";
 
 export default function SettingsPage() {
   const { data: session } = useSession();
@@ -31,6 +32,21 @@ export default function SettingsPage() {
   );
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    const userIdentifier = session?.user?.email || session?.user?.id;
+    const result = await syncEngine.syncAll(userIdentifier);
+    setIsSyncing(false);
+
+    if (result.success) {
+      await loadTransactions();
+      setImportStatus(`✓ Berhasil disinkronkan (${result.count} data transaksi terkirim ke Supabase)`);
+    } else {
+      setImportStatus(`Gagal sinkronisasi: ${result.error || "Cek koneksi internet"}`);
+    }
+  };
 
   const handleExportJSON = () => {
     const data = { schemaVersion: 1, application: "MoneyTrack" as const, exportedAt: new Date().toISOString(), categories, transactions, settings };
@@ -182,6 +198,11 @@ export default function SettingsPage() {
       {/* Data & Backup */}
       <SectionTitle>Data & Backup</SectionTitle>
       <div className="mb-4 rounded-2xl border border-white/8 bg-[#181820] divide-y divide-white/5">
+        <SettingsRow
+          icon={isSyncing ? RefreshCw : Cloud}
+          label={isSyncing ? "Menyinkronkan ke Supabase..." : "Sinkronkan ke Cloud (Supabase)"}
+          onClick={handleManualSync}
+        />
         <SettingsRow icon={Download} label="Ekspor JSON" onClick={handleExportJSON} />
         <SettingsRow icon={Upload} label="Impor JSON" onClick={handleImportJSON} />
         <SettingsRow icon={FileSpreadsheet} label="Ekspor CSV" onClick={handleExportCSV} />
