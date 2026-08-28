@@ -82,23 +82,24 @@ function NavItem({
 }: {
   href: string;
   label: string;
-  icon: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>;
   isActive: boolean;
 }) {
   return (
     <Link
       href={href}
       className={cn(
-        "flex min-w-[3.25rem] flex-col items-center gap-1 px-2 py-1 text-[10px] font-semibold transition-colors",
-        isActive ? "text-[#7C3AED]" : "text-slate-400 hover:text-slate-600"
+        "flex min-w-[3.25rem] flex-col items-center gap-1 py-1 text-[10px] tracking-tight transition-colors",
+        isActive ? "text-violet-600 font-semibold" : "text-slate-400 hover:text-slate-600 font-medium"
       )}
     >
-      <div className={cn(
-        "flex h-7 w-7 items-center justify-center rounded-lg transition-colors",
-        isActive && "bg-violet-50 text-[#7C3AED]"
-      )}>
-        <Icon className="h-4 w-4" />
-      </div>
+      <Icon
+        className={cn(
+          "h-[22px] w-[22px] transition-colors",
+          isActive ? "text-violet-600" : "text-slate-400"
+        )}
+        strokeWidth={isActive ? 2.2 : 1.75}
+      />
       <span>{label}</span>
     </Link>
   );

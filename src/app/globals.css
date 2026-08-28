@@ -88,6 +88,32 @@ body {
   border-top: 1px solid rgba(241, 245, 249, 0.8);
 }
 
+/* Continuous Right-to-Left Running Text Marquee for overflowed category labels */
+@keyframes marquee-left {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-marquee-left {
+  display: inline-flex;
+  white-space: nowrap;
+  animation: marquee-left 5.5s linear infinite;
+  will-change: transform;
+}
+
+/* Universal Date Input Mobile Overflow Prevention */
+input[type="date"] {
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
 /* ── Dark Navy Floating FAB ── */
 .pastel-fab {
   background-color: #0F172A;

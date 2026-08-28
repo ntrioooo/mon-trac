@@ -6,7 +6,7 @@ import { useCategoryStore } from "@/stores/category-store";
 import { groupTransactionsByDate } from "@/lib/calculations/transaction-calculations";
 import { formatCurrency, getRelativeDayLabel } from "@/lib/utils";
 import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
-import { Search, Trash2 } from "lucide-react";
+import { Search, Trash2, X } from "lucide-react";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { cn } from "@/lib/utils";
 
@@ -151,23 +151,46 @@ export default function TransactionsPage() {
         </div>
       )}
 
-      {/* Delete Confirmation */}
+      {/* Delete Confirmation Bottom Sheet */}
       {deleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
-          <div className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs" onClick={() => setDeleteId(null)} />
-          <div className="animate-fade-in relative mx-4 w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-            <h3 className="mb-2 text-base font-extrabold text-[#0F172A]">Hapus transaksi?</h3>
-            <p className="mb-5 text-sm font-medium text-slate-500">Tindakan ini tidak dapat dibatalkan.</p>
+        <div className="fixed inset-0 z-50">
+          <div
+            className="animate-fade-in absolute inset-0 bg-slate-900/50 backdrop-blur-xs"
+            onClick={() => setDeleteId(null)}
+          />
+          <div
+            className="animate-slide-up absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-6 shadow-2xl"
+            style={{ paddingBottom: "env(safe-area-inset-bottom, 1.5rem)" }}
+          >
+            {/* Handle bar */}
+            <div className="flex justify-center -mt-2 pb-3">
+              <div className="h-1.5 w-12 rounded-full bg-slate-200" />
+            </div>
+
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+              <h3 className="text-base font-extrabold text-[#0F172A]">Hapus transaksi?</h3>
+              <button
+                onClick={() => setDeleteId(null)}
+                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <p className="mb-6 text-sm font-medium text-slate-500">
+              Transaksi ini akan dihapus secara permanen dari riwayat pengeluaran Anda.
+            </p>
+
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteId(null)}
-                className="flex-1 rounded-2xl border border-slate-200 py-2.5 text-sm font-bold text-slate-600 hover:bg-slate-50"
+                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
               >
                 Batal
               </button>
               <button
                 onClick={() => handleDelete(deleteId)}
-                className="flex-1 rounded-2xl bg-rose-500 py-2.5 text-sm font-extrabold text-white shadow-lg shadow-rose-500/25 hover:bg-rose-600"
+                className="flex-1 rounded-2xl bg-rose-500 py-3 text-sm font-extrabold text-white shadow-md shadow-rose-500/25 hover:bg-rose-600 active:scale-[0.98] transition-all cursor-pointer"
               >
                 Hapus
               </button>

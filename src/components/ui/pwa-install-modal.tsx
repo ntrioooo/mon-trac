@@ -1,7 +1,7 @@
 "use client";
 
 import { usePwaStore } from "@/stores/pwa-store";
-import { X, Share, PlusSquare, Smartphone, Check } from "lucide-react";
+import { X, Share, PlusSquare } from "lucide-react";
 import Image from "next/image";
 
 export function PwaInstallModal() {
@@ -12,47 +12,55 @@ export function PwaInstallModal() {
   if (!showIOSModal) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50">
       {/* Backdrop */}
       <div
         className="animate-fade-in absolute inset-0 bg-slate-900/50 backdrop-blur-xs"
         onClick={() => setShowIOSModal(false)}
       />
 
-      {/* Modal Card */}
-      <div className="animate-slide-up relative w-full max-w-sm rounded-3xl bg-white p-6 shadow-2xl">
-        {/* Close Button */}
-        <button
-          onClick={() => setShowIOSModal(false)}
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
-          aria-label="Tutup"
-        >
-          <X className="h-4 w-4" />
-        </button>
+      {/* Bottom Sheet Modal */}
+      <div
+        className="animate-slide-up absolute bottom-0 left-0 right-0 max-h-[90dvh] overflow-y-auto rounded-t-3xl border-t border-slate-100 bg-white p-6 shadow-2xl"
+        style={{ paddingBottom: "env(safe-area-inset-bottom, 1.5rem)" }}
+      >
+        {/* Handle Bar */}
+        <div className="flex justify-center -mt-2 pb-3">
+          <div className="h-1.5 w-12 rounded-full bg-slate-200" />
+        </div>
 
         {/* Header with App Logo */}
-        <div className="flex items-center gap-3 mb-5">
-          <div className="relative h-12 w-12 shrink-0 rounded-2xl overflow-hidden shadow-md">
-            <Image
-              src="/icons/icon-logo.png"
-              alt="Ingat Miskin Logo"
-              width={48}
-              height={48}
-              className="h-full w-full object-contain"
-            />
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-5">
+          <div className="flex items-center gap-3">
+            <div className="relative h-11 w-11 shrink-0 rounded-2xl overflow-hidden shadow-md">
+              <Image
+                src="/icons/icon-logo.png"
+                alt="Ingat Miskin Logo"
+                width={44}
+                height={44}
+                className="h-full w-full object-contain"
+              />
+            </div>
+            <div>
+              <h3 className="text-base font-extrabold text-[#0F172A]">
+                Akses di Layar Utama
+              </h3>
+              <p className="text-xs font-medium text-slate-400">
+                Pasang aplikasi tanpa perlu buka browser
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-base font-extrabold text-[#0F172A]">
-              Akses di Layar Utama
-            </h3>
-            <p className="text-xs font-medium text-slate-400">
-              Pasang aplikasi tanpa perlu download di App Store
-            </p>
-          </div>
+          <button
+            onClick={() => setShowIOSModal(false)}
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
+            aria-label="Tutup"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
 
         {/* Instructions */}
-        <div className="space-y-3.5 mb-6">
+        <div className="space-y-3 mb-6">
           <div className="flex items-start gap-3 rounded-2xl bg-slate-50 p-3.5 border border-slate-100">
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl bg-violet-100 text-violet-700 font-bold text-xs">
               1
@@ -97,7 +105,7 @@ export function PwaInstallModal() {
         {/* Action Button */}
         <button
           onClick={() => setShowIOSModal(false)}
-          className="w-full rounded-2xl bg-violet-600 py-3 text-sm font-extrabold text-white shadow-md shadow-violet-500/20 hover:bg-violet-700 active:scale-95 transition-all"
+          className="w-full rounded-2xl bg-violet-600 py-3.5 text-sm font-extrabold text-white shadow-md shadow-violet-500/20 hover:bg-violet-700 active:scale-[0.98] transition-all cursor-pointer"
         >
           Mengerti
         </button>
