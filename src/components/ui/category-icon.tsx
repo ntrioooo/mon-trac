@@ -25,11 +25,12 @@ import {
   Dumbbell,
   Bus,
   Train,
+  CircleDot,
   type LucideIcon,
 } from "lucide-react";
 
 export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
-  // Lucide names
+  // PascalCase Lucide Names
   Utensils,
   Coffee,
   Car,
@@ -69,8 +70,21 @@ export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   package: Package,
   film: Film,
   zap: Zap,
+  briefcase: Briefcase,
+  plane: Plane,
+  gift: Gift,
+  shirt: Shirt,
+  music: Music,
+  phone: Phone,
+  shield: Shield,
+  tag: Tag,
+  wallet: Wallet,
+  fuel: Fuel,
+  dumbbell: Dumbbell,
+  bus: Bus,
+  train: Train,
 
-  // Fallbacks for legacy emoji data
+  // Fallback for legacy emoji strings in existing IndexedDB databases
   "🍜": Utensils,
   "🍔": Utensils,
   "☕": Coffee,
@@ -88,7 +102,7 @@ export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
 };
 
 interface CategoryIconProps {
-  icon: string;
+  icon?: string | null;
   className?: string;
   color?: string;
 }
@@ -98,7 +112,8 @@ export function CategoryIcon({
   className = "h-5 w-5",
   color,
 }: CategoryIconProps) {
-  const IconComponent = CATEGORY_ICON_MAP[icon] || CATEGORY_ICON_MAP[icon.toLowerCase()] || Package;
+  const key = (icon || "").trim();
+  const IconComponent = CATEGORY_ICON_MAP[key] || CATEGORY_ICON_MAP[key.toLowerCase()] || Package;
 
   return (
     <IconComponent
