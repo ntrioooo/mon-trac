@@ -3,24 +3,42 @@
 import { useState, useMemo } from "react";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
+import { useWalletStore } from "@/stores/wallet-store";
 import { groupTransactionsByDate } from "@/lib/calculations/transaction-calculations";
 import { formatCurrency, getRelativeDayLabel } from "@/lib/utils";
-import { PAYMENT_METHOD_LABELS } from "@/types/transaction";
-import { Search, Trash2, X } from "lucide-react";
+import { Search, X, SlidersHorizontal } from "lucide-react";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { cn } from "@/lib/utils";
+import type { Transaction, TransactionType } from "@/types/transaction";
+
+function dispatchEditTransaction(transaction: Transaction) {
+  window.dispatchEvent(new CustomEvent("montrac:edit-transaction", { detail: transaction }));
+}
+
+type TypeFilter = "all" | "expense" | "income";
 
 export default function TransactionsPage() {
   const transactions = useTransactionStore((s) => s.transactions);
-  const deleteTransaction = useTransactionStore((s) => s.deleteTransaction);
   const categories = useCategoryStore((s) => s.categories);
+  const wallets = useWalletStore((s) => s.wallets);
 
   const [search, setSearch] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("");
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [filterType, setFilterType] = useState<TypeFilter>("all");
+  const [filterWallet, setFilterWallet] = useState<string>("");
+  const [showFilters, setShowFilters] = useState(false);
 
   const filtered = useMemo(() => {
     let result = transactions;
+
+    // Type filter
+    if (filterType !== "all") {
+      result = result.filter((t) =>
+        filterType === "expense" ? (t.type === "expense" || !t.type) : t.type === filterType
+      );
+    }
+
+    // Search
     if (search) {
       const q = search.toLowerCase();
       result = result.filter((t) => {
@@ -28,23 +46,44 @@ export default function TransactionsPage() {
         return t.note?.toLowerCase().includes(q) || cat?.name.toLowerCase().includes(q);
       });
     }
-    if (filterCategory) result = result.filter((t) => t.categoryId === filterCategory);
+
+    // Category filter
+    if (filterCategory) {
+      result = result.filter((t) => t.categoryId === filterCategory);
+    }
+
+    // Wallet filter
+    if (filterWallet) {
+      result = result.filter((t) => t.walletId === filterWallet || t.toWalletId === filterWallet);
+    }
+
     return result;
-  }, [transactions, search, filterCategory, categories]);
+  }, [transactions, search, filterCategory, filterType, filterWallet, categories]);
 
   const grouped = groupTransactionsByDate(filtered);
 
-  const handleDelete = async (id: string) => {
-    await deleteTransaction(id);
-    setDeleteId(null);
-  };
+  const hasActiveFilter = filterCategory || filterWallet || search || filterType !== "all";
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-6 pb-8">
       {/* Header */}
-      <h1 className="mb-4 text-2xl font-extrabold tracking-tight text-[#0F172A]">
-        Aktivitas Transaksi
-      </h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-2xl font-extrabold tracking-tight text-[#0F172A]">
+          Aktivitas
+        </h1>
+        <button
+          onClick={() => setShowFilters(!showFilters)}
+          className={cn(
+            "flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors",
+            hasActiveFilter
+              ? "border-violet-600 bg-violet-50 text-violet-700"
+              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+          )}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          {hasActiveFilter ? "Filter Aktif" : "Filter"}
+        </button>
+      </div>
 
       {/* Search */}
       <div className="relative mb-3">
@@ -52,150 +91,208 @@ export default function TransactionsPage() {
         <input
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Cari pengeluaran atau catatan..."
+          placeholder="Cari catatan atau kategori..."
           className="w-full rounded-2xl border border-slate-200/80 bg-white py-2.5 pl-10 pr-4 text-sm text-[#0F172A] placeholder:text-slate-400 shadow-xs focus:border-violet-500 focus:outline-none"
         />
       </div>
 
-      {/* Category Filter Pills */}
-      <div className="mb-5 flex gap-2 overflow-x-auto pb-1 scrollbar-none">
-        <button
-          onClick={() => setFilterCategory("")}
-          className={cn(
-            "shrink-0 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors",
-            !filterCategory
-              ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
-              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-          )}
-        >
-          Semua
-        </button>
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => setFilterCategory(cat.id)}
-            className={cn(
-              "shrink-0 flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors",
-              filterCategory === cat.id
-                ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
-                : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
-            )}
-          >
-            <CategoryIcon icon={cat.icon} color="#7C3AED" className="h-3.5 w-3.5" />
-            <span>{cat.name}</span>
-          </button>
-        ))}
+      {/* Type Filter Tabs */}
+      <div className="flex gap-2 mb-3">
+        {(["all", "expense", "income"] as TypeFilter[]).map((t) => {
+          const label = t === "all" ? "Semua" : t === "expense" ? "Pengeluaran" : "Pemasukan";
+          const active = filterType === t;
+          return (
+            <button
+              key={t}
+              onClick={() => setFilterType(t)}
+              className={cn(
+                "flex-1 rounded-xl border py-2 text-xs font-bold transition-colors",
+                active && t === "all" && "border-violet-600 bg-violet-50 text-violet-700 shadow-xs",
+                active && t === "expense" && "border-rose-500 bg-rose-50 text-rose-700 shadow-xs",
+                active && t === "income" && "border-emerald-500 bg-emerald-50 text-emerald-700 shadow-xs",
+                !active && "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+              )}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
+
+      {/* Expanded Filters */}
+      {showFilters && (
+        <div className="mb-3 rounded-2xl border border-slate-200 bg-white p-4 space-y-3">
+          {/* Category Filter */}
+          <div>
+            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+              Kategori
+            </p>
+            <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <button
+                onClick={() => setFilterCategory("")}
+                className={cn(
+                  "shrink-0 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors",
+                  !filterCategory
+                    ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                )}
+              >
+                Semua
+              </button>
+              {categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setFilterCategory(cat.id)}
+                  className={cn(
+                    "shrink-0 flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors",
+                    filterCategory === cat.id
+                      ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  <CategoryIcon icon={cat.icon} color="#7C3AED" className="h-3.5 w-3.5" />
+                  <span>{cat.name}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Wallet Filter */}
+          {wallets.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Dompet
+              </p>
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-none">
+                <button
+                  onClick={() => setFilterWallet("")}
+                  className={cn(
+                    "shrink-0 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors",
+                    !filterWallet
+                      ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
+                      : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                  )}
+                >
+                  Semua
+                </button>
+                {wallets.map((w) => (
+                  <button
+                    key={w.id}
+                    onClick={() => setFilterWallet(w.id)}
+                    className={cn(
+                      "shrink-0 flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors",
+                      filterWallet === w.id
+                        ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
+                        : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                    )}
+                  >
+                    <CategoryIcon icon={w.icon} color={w.color} className="h-3.5 w-3.5" />
+                    <span>{w.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Clear Filters */}
+          {hasActiveFilter && (
+            <button
+              onClick={() => {
+                setFilterCategory("");
+                setFilterWallet("");
+                setSearch("");
+                setFilterType("all");
+              }}
+              className="flex items-center gap-1.5 text-xs font-bold text-rose-500 hover:text-rose-600 transition-colors"
+            >
+              <X className="h-3.5 w-3.5" />
+              Hapus semua filter
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Transaction List */}
       {grouped.length === 0 ? (
         <div className="pastel-card mt-8 p-10 text-center">
           <div className="mb-2 text-3xl">🔍</div>
           <p className="text-sm font-bold text-[#0F172A]">
-            {search || filterCategory ? "Transaksi tidak ditemukan" : "Belum ada transaksi"}
+            {hasActiveFilter ? "Transaksi tidak ditemukan" : "Belum ada transaksi"}
           </p>
           <p className="mt-1 text-xs text-slate-400">
-            {search || filterCategory ? "Coba ubah filter atau kata kunci pencarian" : "Catat pengeluaran pertama Anda dengan menekan tombol +"}
+            {hasActiveFilter
+              ? "Coba ubah filter atau kata kunci pencarian"
+              : "Catat transaksi pertama Anda dengan menekan tombol +"}
           </p>
         </div>
       ) : (
         <div className="space-y-4">
           {grouped.map((group) => (
             <div key={group.date}>
+              {/* Date Header */}
               <div className="mb-1.5 flex items-center justify-between px-1">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
                   {getRelativeDayLabel(group.date)}
                 </span>
-                <span className="text-xs font-extrabold tabular-nums text-rose-500">
-                  -{formatCurrency(group.total)}
-                </span>
+                <div className="flex items-center gap-2">
+                  {group.incomeTotal > 0 && (
+                    <span className="text-xs font-extrabold tabular-nums text-emerald-600">
+                      +{formatCurrency(group.incomeTotal)}
+                    </span>
+                  )}
+                  {group.expenseTotal > 0 && (
+                    <span className="text-xs font-extrabold tabular-nums text-rose-500">
+                      -{formatCurrency(group.expenseTotal)}
+                    </span>
+                  )}
+                </div>
               </div>
+
+              {/* Transaction Cards */}
               <div className="pastel-card overflow-hidden divide-y divide-slate-100">
                 {group.transactions.map((t) => {
                   const cat = categories.find((c) => c.id === t.categoryId);
+                  const wallet = wallets.find((w) => w.id === t.walletId);
+                  const isIncome = t.type === "income";
+                  const iconBg = isIncome ? "bg-emerald-50" : "bg-violet-50";
+                  const iconColor = isIncome ? "#10B981" : "#7C3AED";
+                  const amountColor = isIncome ? "text-emerald-600" : "text-rose-500";
+                  const amountPrefix = isIncome ? "+" : "-";
+
                   return (
-                    <div key={t.id} className="flex items-center gap-3.5 px-5 py-3 hover:bg-slate-50/60 transition-colors">
-                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
-                        <CategoryIcon
-                          icon={cat?.icon ?? "Package"}
-                          color="#7C3AED"
-                          className="h-5 w-5"
-                        />
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => dispatchEditTransaction(t)}
+                      className="w-full flex items-center gap-3.5 px-5 py-3 hover:bg-slate-50/60 transition-colors text-left"
+                    >
+                      <div className={cn("flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl", iconBg)}>
+                        <CategoryIcon icon={cat?.icon ?? "Package"} color={iconColor} className="h-5 w-5" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="truncate text-sm font-bold text-[#0F172A]">
-                          {t.note || cat?.name || "Pengeluaran"}
+                          {t.note || cat?.name || (isIncome ? "Pemasukan" : "Pengeluaran")}
                         </div>
-                        <div className="text-xs font-medium text-slate-400">
-                          {cat?.name} · {PAYMENT_METHOD_LABELS[t.paymentMethod]}
+                        <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
+                          <span>{cat?.name}</span>
+                          {wallet && (
+                            <>
+                              <span>·</span>
+                              <CategoryIcon icon={wallet.icon} color={wallet.color} className="h-3 w-3" />
+                              <span>{wallet.name}</span>
+                            </>
+                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-extrabold tabular-nums text-rose-500">
-                          -{formatCurrency(t.amount)}
-                        </span>
-                        <button
-                          onClick={() => setDeleteId(t.id)}
-                          className="flex h-8 w-8 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-50 hover:text-rose-600 transition-colors"
-                          aria-label="Hapus transaksi"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </div>
+                      <span className={cn("text-sm font-extrabold tabular-nums shrink-0", amountColor)}>
+                        {amountPrefix}{formatCurrency(t.amount)}
+                      </span>
+                    </button>
                   );
                 })}
               </div>
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Delete Confirmation Bottom Sheet */}
-      {deleteId && (
-        <div className="fixed inset-0 z-50">
-          <div
-            className="animate-fade-in absolute inset-0 bg-slate-900/50 backdrop-blur-xs"
-            onClick={() => setDeleteId(null)}
-          />
-          <div
-            className="animate-slide-up absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-6 shadow-2xl"
-            style={{ paddingBottom: "env(safe-area-inset-bottom, 1.5rem)" }}
-          >
-            {/* Handle bar */}
-            <div className="flex justify-center -mt-2 pb-3">
-              <div className="h-1.5 w-12 rounded-full bg-slate-200" />
-            </div>
-
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-extrabold text-[#0F172A]">Hapus transaksi?</h3>
-              <button
-                onClick={() => setDeleteId(null)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <p className="mb-6 text-sm font-medium text-slate-500">
-              Transaksi ini akan dihapus secara permanen dari riwayat pengeluaran Anda.
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                onClick={() => handleDelete(deleteId)}
-                className="flex-1 rounded-2xl bg-rose-500 py-3 text-sm font-extrabold text-white shadow-md shadow-rose-500/25 hover:bg-rose-600 active:scale-[0.98] transition-all cursor-pointer"
-              >
-                Hapus
-              </button>
-            </div>
-          </div>
         </div>
       )}
     </div>

@@ -256,8 +256,9 @@ export const syncEngine = {
           const localItem: Transaction = {
             id: remote.id,
             amount: decryptedAmount,
-            type: "expense",
+            type: (remote.type as "expense" | "income" | "transfer") || "expense",
             categoryId: remote.category_id,
+            walletId: remote.wallet_id || "wallet-tunai",
             note: decryptedNote || undefined,
             date: remote.date,
             paymentMethod: (remote.payment_method as "cash" | "bank" | "debit" | "credit" | "ewallet") || "cash",

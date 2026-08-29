@@ -52,6 +52,11 @@ export const transactionRepository = {
     return await db.transactions.where("categoryId").equals(categoryId).toArray();
   },
 
+  async getByWallet(walletId: string): Promise<Transaction[]> {
+    const all = await db.transactions.toArray();
+    return all.filter((t) => t.walletId === walletId || t.toWalletId === walletId);
+  },
+
   async count(): Promise<number> {
     return await db.transactions.count();
   },

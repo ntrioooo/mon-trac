@@ -11,9 +11,12 @@ import { BudgetSheet } from "@/components/dashboard/budget-sheet";
 import { QuickStats } from "@/components/dashboard/quick-stats";
 import { CategoryChart } from "@/components/dashboard/category-chart";
 import { RecentTransactions } from "@/components/dashboard/recent-transactions";
+import { WalletCarousel } from "@/components/dashboard/wallet-carousel";
 import { Toast, useToast } from "@/components/ui/toast";
 import {
-  calculateTotalSpending,
+  calculateTotalExpense,
+  calculateTotalIncome,
+  calculateNetCashFlow,
   calculateTodaySpending,
   calculateCategorySpending,
 } from "@/lib/calculations/transaction-calculations";
@@ -24,6 +27,7 @@ import {
 } from "@/lib/calculations/budget-calculations";
 import { getGreeting, cn } from "@/lib/utils";
 import { syncEngine } from "@/lib/sync-engine";
+import type { Transaction } from "@/types/transaction";
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -35,6 +39,7 @@ export default function DashboardPage() {
 
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
   const handleRefresh = async () => {
@@ -61,25 +66,16 @@ export default function DashboardPage() {
   const currentMonth = now.getMonth();
 
   const prefix = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
-  const monthTransactions = transactions.filter((t) =>
-    t.date.startsWith(prefix),
-  );
+  const monthTransactions = transactions.filter((t) => t.date.startsWith(prefix));
 
-  const monthlySpending = calculateTotalSpending(monthTransactions);
+  const monthlySpending = calculateTotalExpense(monthTransactions);
+  const monthlyIncome = calculateTotalIncome(monthTransactions);
+  const netCashFlow = calculateNetCashFlow(monthTransactions);
   const todaySpending = calculateTodaySpending(transactions);
-  const budgetRemaining = calculateBudgetRemaining(
-    settings.monthlyBudget,
-    monthlySpending,
-  );
-  const budgetPercentage = calculateBudgetPercentage(
-    settings.monthlyBudget,
-    monthlySpending,
-  );
+  const budgetRemaining = calculateBudgetRemaining(settings.monthlyBudget, monthlySpending);
+  const budgetPercentage = calculateBudgetPercentage(settings.monthlyBudget, monthlySpending);
   const budgetStatus = getBudgetStatus(settings.monthlyBudget, monthlySpending);
-  const categorySpending = calculateCategorySpending(
-    monthTransactions,
-    categories,
-  );
+  const categorySpending = calculateCategorySpending(monthTransactions, categories);
 
   const recentTransactions = [...transactions]
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
@@ -97,7 +93,6 @@ export default function DashboardPage() {
       {/* Aurora Lavender Header */}
       <div className="bg-aurora-header px-4 pt-6 pb-6 border-b border-violet-100/50">
         <div className="mx-auto max-w-lg">
-          {/* Top Bar: Date Badge & Refresh Sync Button (justify-between) */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 shadow-xs backdrop-blur text-xs font-semibold text-slate-700">
               <Calendar className="h-3.5 w-3.5 text-violet-600" />
@@ -115,16 +110,12 @@ export default function DashboardPage() {
               id="btn-refresh-dashboard"
             >
               <RefreshCw
-                className={cn(
-                  "h-3.5 w-3.5 text-violet-600",
-                  isSyncing && "animate-spin"
-                )}
+                className={cn("h-3.5 w-3.5 text-violet-600", isSyncing && "animate-spin")}
               />
               <span>{isSyncing ? "Menyinkronkan..." : "Segarkan"}</span>
             </button>
           </div>
 
-          {/* Greeting */}
           <div className="text-center">
             <h1 className="text-sm font-bold text-slate-600">
               {getGreeting()}
@@ -139,12 +130,17 @@ export default function DashboardPage() {
         {/* Monthly Summary Hero Card */}
         <MonthlySummaryCard
           spending={monthlySpending}
+          income={monthlyIncome}
+          netCashFlow={netCashFlow}
           budget={settings.monthlyBudget}
           remaining={budgetRemaining}
           percentage={budgetPercentage}
           status={budgetStatus}
           onEditBudget={() => setBudgetOpen(true)}
         />
+
+        {/* Wallet Carousel */}
+        <WalletCarousel />
 
         {/* Quick Stats */}
         <QuickStats
@@ -161,6 +157,7 @@ export default function DashboardPage() {
         <RecentTransactions
           transactions={recentTransactions}
           categories={categories}
+          onEditTransaction={setEditTransaction}
         />
       </div>
 
@@ -175,11 +172,7 @@ export default function DashboardPage() {
 
       {/* Toast Feedback */}
       {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={hideToast}
-        />
+        <Toast message={toast.message} type={toast.type} onClose={hideToast} />
       )}
     </div>
   );

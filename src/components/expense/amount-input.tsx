@@ -2,14 +2,16 @@
 
 import { useRef, useEffect } from "react";
 import { formatAmountInput, parseAmountInput, cn } from "@/lib/utils";
+import type { TransactionType } from "@/types/transaction";
 
 interface AmountInputProps {
   value: number;
   onChange: (value: number) => void;
   error?: string;
+  type?: TransactionType;
 }
 
-export function AmountInput({ value, onChange, error }: AmountInputProps) {
+export function AmountInput({ value, onChange, error, type = "expense" }: AmountInputProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -33,13 +35,16 @@ export function AmountInput({ value, onChange, error }: AmountInputProps) {
       ? "text-4xl"
       : "text-5xl";
 
+  const amountColor = type === "income" ? "text-emerald-600" : "text-[#0F172A]";
+  const label = type === "income" ? "Nominal Pemasukan" : "Nominal Pengeluaran";
+
   return (
     <div className="w-full text-center py-2">
       <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-        Nominal Pengeluaran
+        {label}
       </div>
       <div className="flex w-full items-baseline justify-center gap-1.5 px-2">
-        <span className="text-xl sm:text-2xl font-bold text-slate-400 shrink-0">Rp</span>
+        <span className={cn("text-xl sm:text-2xl font-bold shrink-0", amountColor)}>Rp</span>
         <input
           ref={inputRef}
           type="text"
@@ -48,8 +53,9 @@ export function AmountInput({ value, onChange, error }: AmountInputProps) {
           onChange={handleChange}
           placeholder="0"
           className={cn(
-            "w-full max-w-[280px] border-none bg-transparent text-center font-extrabold tabular-nums tracking-tight text-[#0F172A] placeholder:text-slate-200 focus:outline-none transition-all",
-            fontSizeClass
+            "w-full max-w-[280px] border-none bg-transparent text-center font-extrabold tabular-nums tracking-tight placeholder:text-slate-200 focus:outline-none transition-all",
+            fontSizeClass,
+            amountColor
           )}
           autoComplete="off"
         />

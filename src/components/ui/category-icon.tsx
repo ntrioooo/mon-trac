@@ -25,6 +25,15 @@ import {
   Dumbbell,
   Bus,
   Train,
+  Building2,
+  Smartphone,
+  CreditCard,
+  PiggyBank,
+  Landmark,
+  CircleDollarSign,
+  TrendingUp,
+  Laptop,
+  Sparkles,
   CircleDot,
   type LucideIcon,
 } from "lucide-react";
@@ -56,6 +65,17 @@ export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   Dumbbell,
   Bus,
   Train,
+  // Wallet & income icons
+  Building2,
+  Smartphone,
+  CreditCard,
+  PiggyBank,
+  Landmark,
+  CircleDollarSign,
+  TrendingUp,
+  Laptop,
+  Sparkles,
+  CircleDot,
 
   // Lowercase aliases
   utensils: Utensils,
@@ -83,6 +103,16 @@ export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   dumbbell: Dumbbell,
   bus: Bus,
   train: Train,
+  building2: Building2,
+  smartphone: Smartphone,
+  creditcard: CreditCard,
+  piggybank: PiggyBank,
+  landmark: Landmark,
+  circledollarsign: CircleDollarSign,
+  trendingup: TrendingUp,
+  laptop: Laptop,
+  sparkles: Sparkles,
+  circledot: CircleDot,
 
   // Fallback for legacy emoji strings in existing IndexedDB databases
   "🍜": Utensils,
@@ -99,6 +129,14 @@ export const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   "⚡": Zap,
   "🎬": Film,
   "🛍️": ShoppingCart,
+  // Income emoji fallbacks
+  "💼": Briefcase,
+  "🎁": Gift,
+  "💻": Laptop,
+  "📈": TrendingUp,
+  "🏷️": Tag,
+  "✨": Sparkles,
+  "💰": CircleDollarSign,
 };
 
 interface CategoryIconProps {

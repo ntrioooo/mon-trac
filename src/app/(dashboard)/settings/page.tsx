@@ -143,7 +143,7 @@ export default function SettingsPage() {
         t.amount.toString(),
         cat?.name ?? "Unknown",
         t.note ?? "",
-        PAYMENT_METHOD_LABELS[t.paymentMethod],
+        (t.paymentMethod ? PAYMENT_METHOD_LABELS[t.paymentMethod] : ""),
         t.createdAt,
       ].map((v) => `"${v.replace(/"/g, '""')}"`);
     });
