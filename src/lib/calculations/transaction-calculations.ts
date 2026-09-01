@@ -1,37 +1,74 @@
 import type { Transaction } from "@/types/transaction";
 import type { Category } from "@/types/category";
-import { getToday, toLocalDateString } from "@/lib/utils";
+import { getToday } from "@/lib/utils";
 
 /**
- * Calculate total spending for a set of transactions.
- * Uses integer arithmetic only.
+ * Calculate total EXPENSE spending for a set of transactions.
  */
 export function calculateTotalSpending(transactions: Transaction[]): number {
-  return transactions.reduce((sum, t) => sum + t.amount, 0);
-}
-
-/**
- * Calculate today's spending from a transaction list.
- */
-export function calculateTodaySpending(transactions: Transaction[]): number {
-  const today = getToday();
   return transactions
-    .filter((t) => t.date === today)
+    .filter((t) => t.type === "expense" || !t.type) // backward compat: old records without type
     .reduce((sum, t) => sum + t.amount, 0);
 }
 
 /**
- * Calculate spending per category.
+ * Calculate total INCOME for a set of transactions.
+ */
+export function calculateTotalIncome(transactions: Transaction[]): number {
+  return transactions
+    .filter((t) => t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+/**
+ * Calculate total EXPENSE for a set of transactions.
+ */
+export function calculateTotalExpense(transactions: Transaction[]): number {
+  return transactions
+    .filter((t) => t.type === "expense" || !t.type)
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+/**
+ * Calculate net cash flow: income - expense.
+ */
+export function calculateNetCashFlow(transactions: Transaction[]): number {
+  return calculateTotalIncome(transactions) - calculateTotalExpense(transactions);
+}
+
+/**
+ * Calculate today's EXPENSE spending from a transaction list.
+ */
+export function calculateTodaySpending(transactions: Transaction[]): number {
+  const today = getToday();
+  return transactions
+    .filter((t) => t.date === today && (t.type === "expense" || !t.type))
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+/**
+ * Calculate today's INCOME from a transaction list.
+ */
+export function calculateTodayIncome(transactions: Transaction[]): number {
+  const today = getToday();
+  return transactions
+    .filter((t) => t.date === today && t.type === "income")
+    .reduce((sum, t) => sum + t.amount, 0);
+}
+
+/**
+ * Calculate spending per category (expense only).
  * Returns sorted array (highest spending first).
  */
 export function calculateCategorySpending(
   transactions: Transaction[],
   categories: Category[]
 ): { category: Category; total: number; percentage: number }[] {
-  const totalSpending = calculateTotalSpending(transactions);
+  const expenseTransactions = transactions.filter((t) => t.type === "expense" || !t.type);
+  const totalSpending = calculateTotalExpense(expenseTransactions);
   const categoryMap = new Map<string, number>();
 
-  for (const t of transactions) {
+  for (const t of expenseTransactions) {
     categoryMap.set(t.categoryId, (categoryMap.get(t.categoryId) ?? 0) + t.amount);
   }
 
@@ -42,7 +79,8 @@ export function calculateCategorySpending(
         category: category ?? {
           id: categoryId,
           name: "Tidak diketahui",
-          icon: "❓",
+          type: "expense" as const,
+          icon: "Package",
           color: "#6B7280",
           isDefault: false,
           createdAt: "",
@@ -57,15 +95,14 @@ export function calculateCategorySpending(
 }
 
 /**
- * Calculate spending per day for a month.
- * Returns array of { date, total } for each day that has spending.
+ * Calculate spending per day for a month (expense only).
  */
 export function calculateDailySpending(
   transactions: Transaction[]
 ): { date: string; total: number }[] {
   const dailyMap = new Map<string, number>();
 
-  for (const t of transactions) {
+  for (const t of transactions.filter((t) => t.type === "expense" || !t.type)) {
     dailyMap.set(t.date, (dailyMap.get(t.date) ?? 0) + t.amount);
   }
 
@@ -75,30 +112,32 @@ export function calculateDailySpending(
 }
 
 /**
- * Calculate average daily spending.
+ * Calculate average daily spending (expense only).
  */
 export function calculateAverageDailySpending(transactions: Transaction[]): number {
-  if (transactions.length === 0) return 0;
+  const expenses = transactions.filter((t) => t.type === "expense" || !t.type);
+  if (expenses.length === 0) return 0;
 
-  const total = calculateTotalSpending(transactions);
-  const uniqueDays = new Set(transactions.map((t) => t.date)).size;
+  const total = calculateTotalExpense(expenses);
+  const uniqueDays = new Set(expenses.map((t) => t.date)).size;
 
   if (uniqueDays === 0) return 0;
   return Math.round(total / uniqueDays);
 }
 
 /**
- * Find the largest transaction.
+ * Find the largest expense transaction.
  */
 export function findLargestTransaction(
   transactions: Transaction[]
 ): Transaction | null {
-  if (transactions.length === 0) return null;
-  return transactions.reduce((max, t) => (t.amount > max.amount ? t : max));
+  const expenses = transactions.filter((t) => t.type === "expense" || !t.type);
+  if (expenses.length === 0) return null;
+  return expenses.reduce((max, t) => (t.amount > max.amount ? t : max));
 }
 
 /**
- * Find the category with the most spending.
+ * Find the category with the most spending (expense only).
  */
 export function findLargestCategory(
   transactions: Transaction[],
@@ -109,8 +148,7 @@ export function findLargestCategory(
 }
 
 /**
- * Calculate monthly spending for the past N months.
- * Returns array with { month, year, total, label }.
+ * Calculate monthly spending comparison for the past N months (expense only).
  */
 export function calculateMonthlyComparison(
   transactions: Transaction[],
@@ -126,7 +164,7 @@ export function calculateMonthlyComparison(
     const prefix = `${year}-${String(month + 1).padStart(2, "0")}`;
 
     const monthTransactions = transactions.filter((t) => t.date.startsWith(prefix));
-    const total = calculateTotalSpending(monthTransactions);
+    const total = calculateTotalExpense(monthTransactions);
 
     const label = new Intl.DateTimeFormat("id-ID", { month: "short" }).format(d);
     result.push({ month, year, total, label });
@@ -140,10 +178,9 @@ export function calculateMonthlyComparison(
  */
 export function groupTransactionsByDate(
   transactions: Transaction[]
-): { date: string; transactions: Transaction[]; total: number }[] {
+): { date: string; transactions: Transaction[]; total: number; incomeTotal: number; expenseTotal: number }[] {
   const groups = new Map<string, Transaction[]>();
 
-  // Sort newest first
   const sorted = [...transactions].sort((a, b) => {
     const dateCompare = b.date.localeCompare(a.date);
     if (dateCompare !== 0) return dateCompare;
@@ -163,5 +200,7 @@ export function groupTransactionsByDate(
     date,
     transactions: txns,
     total: txns.reduce((sum, t) => sum + t.amount, 0),
+    incomeTotal: txns.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0),
+    expenseTotal: txns.filter((t) => t.type === "expense" || !t.type).reduce((sum, t) => sum + t.amount, 0),
   }));
 }

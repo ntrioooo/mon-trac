@@ -1,1592 +1,329 @@
-# MoneyTrack — Personal Expense Tracker
-
-## 1. Project Overview
-
-**MoneyTrack** adalah aplikasi pencatatan pengeluaran pribadi berbasis web yang dirancang terutama untuk penggunaan melalui smartphone.
-
-Tujuan utama aplikasi:
-
-> Mencatat pengeluaran harian secepat mungkin dari HP tanpa membutuhkan database server.
-
-Aplikasi harus memiliki:
-
-- Google OAuth Login
-- Dashboard pengeluaran
-- Input pengeluaran yang sangat cepat
-- Category management
-- Transaction history
-- Budget management
-- Financial charts
-- PWA
-- Offline-first functionality
-- Local data storage
-- Export/import backup
-- Responsive UI
-- Gratis untuk di-deploy
-
-Aplikasi ini ditujukan untuk **personal use**, bukan aplikasi multi-user atau aplikasi keuangan enterprise.
+# MonTrac — Personal Finance & Multi-Wallet Expense/Income Tracker
+## Architecture & Technical Requirements Specification
 
 ---
 
-# 2. Core Architecture
+## 1. Project Overview & Brand Identity
 
-Gunakan arsitektur **Local-First PWA**.
+**MonTrac** (sebelumnya MoneyTrack) adalah aplikasi pencatatan keuangan pribadi modern berbasis web (PWA - Progressive Web App) yang dirancang khusus untuk penggunaan smartphone dengan pendekatan *Local-First*, *Mobile-First*, dan *Zero-Friction Fast Input*.
+
+### Tujuan Utama Aplikasi
+> Memberikan pengalaman pencatatan keuangan (Pemasukan, Pengeluaran, dan Saldo Antar-Dompet/Rekening) tercepat, terindah, dan paling privat langsung dari HP tanpa mewajibkan koneksi internet atau server database yang rumit.
+
+### Fitur Utama
+- **Multi-Wallet / Category Wallet (Dompet & Rekening)**: Mengelola saldo di berbagai kantong/rekening (contoh: Bank Mandiri Rp 2.000.000, Tunai Rp 500.000, GoPay Rp 350.000, BCA Rp 5.000.000).
+- **Dual Flow: Expense & Income**: Pencatatan Pemasukan (Gaji, Bonus, Freelance, dll.) dan Pengeluaran harian.
+- **Fast Input with Direct Open Fields**: Form penambahan/pengubahan langsung memunculkan input Catatan, Tanggal, dan Dompet tanpa klik akordeon tambahan.
+- **Full Activity Management (Edit & Hapus Transaksi)**: Mengubah detail transaksi lama atau menghapusnya dengan aman dan cepat.
+- **Local-First & Offline-First**: Semua data tersimpan aman di IndexedDB (Dexie.js) perangkat pengguna.
+- **Hybrid Cloud Sync**: Opsi sinkronisasi backup cloud end-to-end terenkripsi menggunakan Supabase.
+- **Modern Pastel Light Design System**: Tampilan minimalis lavender aurora, kartu squircle lembut, kontras tinggi, dan visualisasi warna semantik yang jelas (Hijau Mint untuk Income, Merah Rose untuk Expense, Ungu Elektrik untuk Brand/Wallet).
+- **Installable PWA**: Berjalan sebagai aplikasi native di Android & iOS dengan Web Manifest dan Service Worker.
+- **Analisis & Laporan Lengkap**: Grafik pengeluaran harian, donat kategori, perbandingan bulanan, dan arus kas (*cash flow*).
+
+---
+
+## 2. Core Architecture (Local-First + Hybrid Sync)
+
+MonTrac beroperasi dengan prinsip **Local-First as the Single Source of Truth**:
 
 ```text
-                         ┌──────────────────┐
-                         │      Google      │
-                         │     OAuth 2.0    │
-                         └────────┬─────────┘
-                                  │
-                                  ▼
-                       ┌─────────────────────┐
-                       │      Next.js        │
-                       │    App Router       │
-                       │                     │
-                       │     Auth.js         │
-                       │     JWT Session     │
-                       └─────────┬───────────┘
-                                 │
-                                 ▼
-                       ┌─────────────────────┐
-                       │   React Application │
-                       │                     │
-                       │    Zustand State    │
-                       └─────────┬───────────┘
-                                 │
-                                 ▼
-                       ┌─────────────────────┐
-                       │      Dexie.js       │
-                       │      IndexedDB      │
-                       │                     │
-                       │   Transactions      │
-                       │   Categories        │
-                       │   Settings          │
-                       │   Budget            │
-                       └─────────┬───────────┘
-                                 │
-                                 ▼
-                       ┌─────────────────────┐
-                       │    User Device      │
-                       │                     │
-                       │ Android / iPhone    │
-                       └─────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│                      User Interface (PWA)                   │
+│       React 19 + Next.js App Router + Tailwind CSS 4        │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    Zustand State Stores                     │
+│  wallet-store • transaction-store • category-store • etc.   │
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Repository Layer                       │
+│ wallet-repo • transaction-repo • category-repo • settings-repo
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 Local Storage: Dexie.js                     │
+│                       IndexedDB                             │
+│      [wallets]  [transactions]  [categories]  [settings]    │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ (Background Sync)
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   Sync Engine & Supabase                    │
+│            Encrypted Cloud Backup & Multi-device            │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Important architectural principle
-
-There is **NO server database**.
-
-Do NOT introduce:
-
-- PostgreSQL
-- MySQL
-- MongoDB
-- Firebase
-- Supabase database
-- PlanetScale
-- Prisma database
-- Redis
-- Any external database service
-
-All application data must be stored locally using:
-
-```text
-IndexedDB
-    ↓
-Dexie.js
-```
+### Prinsip Arsitektur:
+1. **Zero Latency**: Semua operasi CRUD (tambah/edit/hapus dompet & transaksi) langsung dieksekusi di IndexedDB lokal dan Zustand store secara instan (< 10ms).
+2. **Offline Immunity**: Aplikasi dapat berjalan 100% tanpa internet. Saat online, sync engine melakukan push/pull perubahan secara cerdas di latar belakang.
+3. **Data Privacy**: Data keuangan tetap berada di perangkat pengguna secara default.
 
 ---
 
-# 3. Authentication Architecture
+## 3. Data Model & Database Schema
 
-Authentication uses:
-
-```text
-Google OAuth
-      ↓
-Auth.js
-      ↓
-JWT Session
-```
-
-Authentication exists only to control access to the application.
-
-It does NOT store expense transactions.
-
-### Authentication requirements
-
-User must be able to:
-
-- Login with Google
-- See their Google profile
-- Stay authenticated through JWT session
-- Logout
-
-Protected routes must require authentication.
-
-### Important
-
-Do not store OAuth tokens manually in:
-
-- localStorage
-- IndexedDB
-- cookies created manually
-
-Let Auth.js handle authentication/session management.
-
----
-
-# 4. Technology Stack
-
-Use the following stack.
-
-| Layer | Technology |
-|---|---|
-| Framework | Next.js |
-| Architecture | App Router |
-| Language | TypeScript |
-| UI | React |
-| CSS | Tailwind CSS |
-| Components | shadcn/ui |
-| Icons | Lucide React |
-| Authentication | Auth.js / NextAuth |
-| OAuth Provider | Google |
-| Session | JWT |
-| Local Database | IndexedDB |
-| IndexedDB Wrapper | Dexie.js |
-| State Management | Zustand |
-| Form | React Hook Form |
-| Validation | Zod |
-| Charts | Recharts |
-| PWA | Web Manifest + Service Worker |
-| Hosting | Vercel Free |
-| Source Control | GitHub |
-
-Use the latest stable versions compatible with each other.
-
----
-
-# 5. Project Structure
-
-Use a clean modular structure.
-
-```text
-moneytrack/
-│
-├── app/
-│   ├── (auth)/
-│   │   └── login/
-│   │       └── page.tsx
-│   │
-│   ├── (dashboard)/
-│   │   ├── page.tsx
-│   │   │
-│   │   ├── transactions/
-│   │   │   └── page.tsx
-│   │   │
-│   │   ├── reports/
-│   │   │   └── page.tsx
-│   │   │
-│   │   ├── categories/
-│   │   │   └── page.tsx
-│   │   │
-│   │   └── settings/
-│   │       └── page.tsx
-│   │
-│   ├── api/
-│   │   └── auth/
-│   │
-│   ├── layout.tsx
-│   ├── manifest.ts
-│   └── globals.css
-│
-├── components/
-│   ├── dashboard/
-│   ├── transactions/
-│   ├── reports/
-│   ├── categories/
-│   ├── settings/
-│   ├── expense/
-│   ├── pwa/
-│   └── ui/
-│
-├── lib/
-│   ├── db.ts
-│   ├── auth.ts
-│   ├── repositories/
-│   │   ├── transaction-repository.ts
-│   │   ├── category-repository.ts
-│   │   └── settings-repository.ts
-│   │
-│   ├── calculations/
-│   │   ├── transaction-calculations.ts
-│   │   ├── budget-calculations.ts
-│   │   └── report-calculations.ts
-│   │
-│   ├── export/
-│   │   ├── json.ts
-│   │   └── csv.ts
-│   │
-│   └── utils.ts
-│
-├── stores/
-│   ├── transaction-store.ts
-│   ├── category-store.ts
-│   └── settings-store.ts
-│
-├── hooks/
-│   ├── use-transactions.ts
-│   ├── use-categories.ts
-│   └── use-settings.ts
-│
-├── types/
-│   ├── transaction.ts
-│   ├── category.ts
-│   └── settings.ts
-│
-├── schemas/
-│   ├── transaction-schema.ts
-│   ├── category-schema.ts
-│   └── import-schema.ts
-│
-├── public/
-│   ├── icons/
-│   └── screenshots/
-│
-├── middleware.ts
-├── next.config.ts
-├── package.json
-└── README.md
-```
-
-Do not put all business logic inside page components.
-
----
-
-# 6. Data Model
-
-## Transaction
+### 3.1. Entity: Wallet (`wallets`)
+Menyimpan data dompet / rekening / kantong keuangan pengguna.
 
 ```typescript
-interface Transaction {
-  id: string
-  amount: number
-  type: "expense"
-  categoryId: string
-  note?: string
-  date: string
-  paymentMethod: PaymentMethod
-  createdAt: string
-  updatedAt: string
+export type WalletType = "bank" | "cash" | "ewallet" | "credit" | "savings" | "other";
+
+export interface Wallet {
+  id: string;
+  name: string;             // Contoh: "Bank Mandiri", "BCA", "Dompet Tunai", "GoPay"
+  type: WalletType;         // Tipe dompet
+  initialBalance: number;   // Saldo awal dalam IDR integer (contoh: 2000000)
+  color: string;            // Warna hex untuk identitas visual (contoh: "#7C3AED")
+  icon: string;             // Nama icon Lucide (contoh: "Building2", "Wallet", "Smartphone")
+  isDefault?: boolean;      // Dompet default untuk transaksi cepat
+  createdAt: string;        // ISO timestamp
+  updatedAt: string;        // ISO timestamp
 }
 ```
 
-## Payment Method
+### 3.2. Entity: Transaction (`transactions`)
+Mendukung pengeluaran (*expense*), pemasukan (*income*), dan transfer antar dompet (*transfer*).
 
 ```typescript
-type PaymentMethod =
-  | "cash"
-  | "bank"
-  | "debit"
-  | "credit"
-  | "ewallet"
-```
+export type TransactionType = "expense" | "income" | "transfer";
+export type PaymentMethod = "cash" | "bank" | "debit" | "credit" | "ewallet";
 
-Display labels in Indonesian:
-
-```text
-cash     → Tunai
-bank     → Bank
-debit    → Debit
-credit   → Credit Card
-ewallet  → E-Wallet
-```
-
-## Category
-
-```typescript
-interface Category {
-  id: string
-  name: string
-  icon: string
-  color: string
-  isDefault: boolean
-  createdAt: string
+export interface Transaction {
+  id: string;
+  amount: number;             // IDR Integer positif (contoh: 25000)
+  type: TransactionType;      // "expense" | "income" | "transfer"
+  categoryId: string;         // Referensi ke Category.id
+  walletId: string;           // Referensi ke Wallet.id (sumber dana atau penerima pemasukan)
+  toWalletId?: string;        // Khusus transfer: Dompet tujuan
+  note?: string;              // Catatan transaksi (contoh: "Makan siang", "Gaji bulanan")
+  date: string;               // ISO date string: YYYY-MM-DD
+  paymentMethod?: PaymentMethod; // Opsional/kompatibilitas
+  createdAt: string;          // ISO timestamp
+  updatedAt: string;          // ISO timestamp
 }
 ```
 
-## Settings
+### 3.3. Entity: Category (`categories`)
+Kategori pengeluaran dan pemasukan dengan tipe masing-masing.
 
 ```typescript
-interface Settings {
-  id: string
-  currency: "IDR"
-  monthlyBudget?: number
-  defaultPaymentMethod: PaymentMethod
-  createdAt: string
-  updatedAt: string
+export type CategoryType = "expense" | "income" | "both";
+
+export interface Category {
+  id: string;
+  name: string;             // Contoh: "Makanan", "Gaji", "Transportasi"
+  type: CategoryType;       // "expense" | "income" | "both"
+  icon: string;             // Lucide icon name atau Emoji
+  color: string;            // Warna hex kategori
+  isDefault: boolean;       // Kategori bawaan sistem
+  createdAt: string;
+  updatedAt?: string;
+}
+```
+
+### 3.4. Entity: Settings (`settings`)
+Pengaturan preferensi pengguna.
+
+```typescript
+export interface Settings {
+  id: string;
+  currency: "IDR";
+  monthlyBudget?: number;
+  defaultWalletId?: string;
+  defaultPaymentMethod?: PaymentMethod;
+  appName?: string;
+  theme?: "pastel-light" | "system";
+  createdAt: string;
+  updatedAt: string;
 }
 ```
 
 ---
 
-# 7. IndexedDB Architecture
+## 4. Default Seed & Master Data
 
-Create a Dexie database:
+### 4.1. Default Wallets (Inisialisasi Pertama)
+1. **Tunai**: `name: "Dompet Tunai"`, `type: "cash"`, `initialBalance: 0`, `icon: "Wallet"`, `color: "#10B981"`, `isDefault: true`
+2. **Bank Utama**: `name: "Rekening Bank"`, `type: "bank"`, `initialBalance: 0`, `icon: "Building2"`, `color: "#7C3AED"`
+3. **E-Wallet**: `name: "E-Wallet"`, `type: "ewallet"`, `initialBalance: 0`, `icon: "Smartphone"`, `color: "#06B6D4"`
 
-```text
-MoneyTrackDB
-```
+### 4.2. Default Expense Categories
+| Kategori | Icon | Warna |
+|---|---|---|
+| Makanan | `Utensils` / 🍜 | `#F59E0B` |
+| Minuman & Kafe | `Coffee` / ☕ | `#D97706` |
+| Transportasi | `Car` / 🚗 | `#3B82F6` |
+| Belanja | `ShoppingBag` / 🛒 | `#EC4899` |
+| Tagihan & Utilitas | `Receipt` / 🧾 | `#6366F1` |
+| Hiburan | `Gamepad2` / 🎮 | `#8B5CF6` |
+| Kesehatan | `HeartPulse` / 💊 | `#EF4444` |
+| Pendidikan | `GraduationCap` / 📚 | `#10B981` |
+| Rumah & Tempat Tinggal | `Home` / 🏠 | `#14B8A6` |
+| Lainnya | `Package` / 📦 | `#64748B` |
 
-Tables:
-
-```text
-transactions
-categories
-settings
-```
-
-Example:
-
-```typescript
-class MoneyTrackDB extends Dexie {
-  transactions!: Table<Transaction, string>
-  categories!: Table<Category, string>
-  settings!: Table<Settings, string>
-}
-```
-
-Database access must be centralized.
-
-Prefer:
-
-```text
-React Component
-      ↓
-Zustand Store / Hook
-      ↓
-Repository
-      ↓
-Dexie
-      ↓
-IndexedDB
-```
-
-Avoid accessing Dexie directly from every component.
+### 4.3. Default Income Categories
+| Kategori | Icon | Warna |
+|---|---|---|
+| Gaji Pokok | `Briefcase` / 💼 | `#10B981` |
+| Bonus & Tunjangan | `Gift` / 🎁 | `#059669` |
+| Freelance & Projek | `Laptop` / 💻 | `#0D9488` |
+| Investasi & Dividen | `TrendingUp` / 📈 | `#6366F1` |
+| Penjualan | `Tag` / 🏷️ | `#F59E0B` |
+| Hadiah | `Sparkles` / ✨ | `#EC4899` |
+| Pemasukan Lainnya | `CircleDollarSign` / 💰 | `#3B82F6` |
 
 ---
 
-# 8. Dashboard Requirements
+## 5. Calculation Logic & Financial Math
 
-Dashboard is the primary screen.
+Semua perhitungan keuangan menggunakan fungsi murni (*pure functions*) yang terpusat di `src/lib/calculations/`:
 
-Mobile layout:
+### 5.1. Perhitungan Saldo Dompet (Wallet Balance Calculation)
+$$\text{Wallet Balance}(W) = \text{InitialBalance}(W) + \sum_{t \in \text{Income}(W)} t.\text{amount} - \sum_{t \in \text{Expense}(W)} t.\text{amount} + \sum_{t \in \text{TransferTo}(W)} t.\text{amount} - \sum_{t \in \text{TransferFrom}(W)} t.\text{amount}$$
 
-```text
-┌──────────────────────────────┐
-│ Good morning 👋              │
-│ August 2026                  │
-│                              │
-│ ┌──────────────────────────┐ │
-│ │ Pengeluaran bulan ini    │ │
-│ │                          │ │
-│ │ Rp 4.250.000             │ │
-│ │                          │ │
-│ │ Budget                   │ │
-│ │ Rp 6.000.000             │ │
-│ │                          │ │
-│ │ ██████████████░░ 71%     │ │
-│ │                          │ │
-│ │ Sisa Rp 1.750.000        │ │
-│ └──────────────────────────┘ │
-│                              │
-│ ┌──────────┐ ┌────────────┐  │
-│ │ Hari ini │ │ Transaksi  │  │
-│ │125.000   │ │     42     │  │
-│ └──────────┘ └────────────┘  │
-│                              │
-│ Pengeluaran berdasarkan      │
-│ kategori                     │
-│                              │
-│        DONUT CHART            │
-│                              │
-│ Transaksi terbaru            │
-│                              │
-│ 🍜 Makan         -Rp 25.000  │
-│ ☕ Kopi          -Rp 18.000  │
-│ 🚗 Transport     -Rp 15.000  │
-│                              │
-│              +               │
-│ Home Transaction Reports     │
-└──────────────────────────────┘
-```
+$$\text{Total Net Worth} = \sum_{W \in \text{Wallets}} \text{Wallet Balance}(W)$$
 
-Dashboard must display:
-
-### Monthly spending
-
-Total spending for current month.
-
-### Monthly budget
-
-Total configured monthly budget.
-
-### Remaining budget
-
-```text
-budget - spending
-```
-
-### Budget percentage
-
-```text
-(spending / budget) * 100
-```
-
-Prevent division by zero.
-
-### Today's spending
-
-Total expenses for current date.
-
-### Transaction count
-
-Number of transactions in current month.
-
-### Category summary
-
-Show top categories by spending.
-
-### Recent transactions
-
-Show latest 5 transactions.
+### 5.2. Perhitungan Arus Kas Bulanan (Monthly Cash Flow)
+- **Total Income**: $\sum t.\text{amount}$ untuk $t.\text{type} = \text{"income"}$ pada bulan berjalan.
+- **Total Expense**: $\sum t.\text{amount}$ untuk $t.\text{type} = \text{"expense"}$ pada bulan berjalan.
+- **Net Cash Flow (Surplus/Defisit)**: $\text{Total Income} - \text{Total Expense}$
+- **Budget Remaining**: $\text{MonthlyBudget} - \text{Total Expense}$
+- **Budget Usage Percentage**: $\min\left(\frac{\text{Total Expense}}{\text{MonthlyBudget}} \times 100, 100\right)$
 
 ---
 
-# 9. Add Expense Requirements
+## 6. User Experience & UI Specifications
 
-This is the **MOST IMPORTANT FEATURE**.
-
-The expense form must be optimized for one-handed mobile use.
-
-The user should be able to record an expense in approximately:
-
-> 2–5 seconds
-
-### Preferred interaction
+### 6.1. Add & Edit Transaction UX (Direct Open Fields)
+Ketika tombol `+` ditekan atau transaksi ditekan untuk diedit:
+1. **Segmented Type Switcher**:
+   - `[ Pengeluaran ]` (Warna Rose) | `[ Pemasukan ]` (Warna Mint)
+2. **Numeric Amount Input**:
+   - `inputMode="numeric"`, otomatis memformat ke `Rp XX.XXX.XXX`.
+3. **Wallet Selector**:
+   - Pilihan dompet/rekening sumber atau tujuan dengan badge saldo aktif.
+4. **Category Grid**:
+   - Menampilkan kategori sesuai tipe yang dipilih (Expense/Income) dalam bentuk tombol tap besar.
+5. **Catatan (Note) — Langsung Muncul**:
+   - Field input catatan langsung terbuka di layar tanpa perlu klik dropdown tambahan.
+6. **Tanggal & Detail Tambahan — Langsung Muncul**:
+   - Pemilih tanggal (default hari ini) siap digunakan langsung.
+7. **Tombol Aksi**:
+   - `Simpan` / `Perbarui Transaksi` berukuran besar, mantap disentuh dengan jempol satu tangan.
 
 ```text
-Tap +
-   ↓
-Amount
-   ↓
-Tap Category
-   ↓
-Tap Save
+┌───────────────────────────────────────────┐
+│ Tambah Transaksi                       ×  │
+│                                           │
+│ ┌───────────────────┬───────────────────┐ │
+│ │  (-) Pengeluaran  │  (+) Pemasukan    │ │
+│ └───────────────────┴───────────────────┘ │
+│                                           │
+│                 Rp 50.000                 │
+│                                           │
+│ DOMPET / REKENING                         │
+│ [🏦 Bank Mandiri] [💳 GoPay] [💵 Tunai]   │
+│                                           │
+│ KATEGORI                                  │
+│ ┌────────────┐ ┌────────────┐ ┌─────────┐ │
+│ │ 🍜 Makanan │ │ ☕ Minuman │ │ 🚗 Mobil│ │
+│ └────────────┘ └────────────┘ └─────────┘ │
+│                                           │
+│ CATATAN                                   │
+│ ┌───────────────────────────────────────┐ │
+│ │ Makan siang bersama tim               │ │
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ TANGGAL                                   │
+│ ┌───────────────────────────────────────┐ │
+│ │ 📅 28 Agustus 2026                    │ │
+│ └───────────────────────────────────────┘ │
+│                                           │
+│ ┌───────────────────────────────────────┐ │
+│ │                SIMPAN                 │ │
+│ └───────────────────────────────────────┘ │
+└───────────────────────────────────────────┘
 ```
 
-Everything else should be optional/defaulted.
+### 6.2. Activity / Transaction Management (Edit & Hapus Aktivitas)
+- **Halaman Aktivitas (`/transactions`)**:
+  - Filter berdasarkan Kategori, Dompet, dan Tipe (Semua / Pengeluaran / Pemasukan).
+  - Kolom pencarian instan berdasarkan catatan & kategori.
+  - Setiap item transaksi memiliki penanda warna jelas:
+    - **Pemasukan**: Hijau Mint (`+Rp 2.000.000`)
+    - **Pengeluaran**: Merah Rose (`-Rp 25.000`)
+  - Klik transaksi $\rightarrow$ Buka **Edit Transaction Bottom Sheet** dengan data terisi lengkap untuk diubah atau dihapus.
+
+### 6.3. Category Wallet Management Page / Sheet
+- Pengguna dapat:
+  - Melihat daftar semua dompet & total saldo masing-masing.
+  - Menambah dompet baru (Nama, Tipe, Saldo Awal, Warna, Icon).
+  - Mengubah saldo awal atau nama dompet.
+  - Menghapus dompet (dengan validasi transaksi terkait).
 
 ---
 
-## Add Expense UI
+## 7. Modern Pastel Lavender Light Design Tokens
 
-```text
-┌──────────────────────────────┐
-│ Tambah Pengeluaran       ×   │
-│                              │
-│          Rp 25.000           │
-│                              │
-│ ┌──────────┐ ┌──────────┐    │
-│ │ 🍜       │ │ ☕       │    │
-│ │ Makanan  │ │ Minuman  │    │
-│ └──────────┘ └──────────┘    │
-│                              │
-│ ┌──────────┐ ┌──────────┐    │
-│ │ 🚗       │ │ 🛒       │    │
-│ │ Transport│ │ Belanja  │    │
-│ └──────────┘ └──────────┘    │
-│                              │
-│ Catatan (optional)           │
-│ ┌──────────────────────────┐ │
-│ │ Makan siang              │ │
-│ └──────────────────────────┘ │
-│                              │
-│ 📅 Hari ini                  │
-│ 💳 Cash                      │
-│                              │
-│ ┌──────────────────────────┐ │
-│ │       SIMPAN              │ │
-│ └──────────────────────────┘ │
-└──────────────────────────────┘
-```
-
-### Requirements
-
-Amount:
-
-- required
-- numeric input
-- automatically trigger numeric keyboard on mobile
-- automatically format IDR
-- user enters `25000`
-- UI displays `Rp 25.000`
-
-Do not make user type:
-
-```text
-Rp
-.
-,
-```
-
-Category:
-
-- required
-- selected by tapping
-- no manual typing
-- large touch targets
-
-Date:
-
-- default today
-- allow changing date
-
-Payment method:
-
-- default to last used method
-- allow changing
-
-Note:
-
-- optional
-- do not require typing
-
-Save:
-
-- large button
-- sticky near bottom if necessary
-- easy to tap using thumb
-
-After successful save:
-
-- show success toast
-- reset form
-- return to previous screen
-- refresh dashboard
+| Token | Hex Value | Peruntukan |
+|---|---|---|
+| **Canvas Background** | `#F8FAFC` | Latar belakang halaman utama |
+| **Aurora Gradient Top** | `linear-gradient(180deg, #DDD6FE 0%, #EDE9FE 45%, #F8FAFC 100%)` | Header ambient glow lavender |
+| **Card Surface** | `#FFFFFF` | Permukaan kartu squircle lembut |
+| **Brand Accent (Purple)** | `#7C3AED` / `#8B5CF6` | Brand utama, dompet bank, tombol aktif |
+| **Income Accent (Mint)** | `#10B981` / `#4ADE80` | Indikator pemasukan, surplus, badge cash flow positif |
+| **Expense Accent (Rose)** | `#EF4444` / `#F87171` | Indikator pengeluaran, peringatan over-budget, hapus |
+| **Text Primary** | `#0F172A` | Teks judul, nominal uang kontras tinggi |
+| **Text Secondary** | `#64748B` | Label kategori, tanggal, catatan kecil |
+| **Border Normal** | `rgba(226, 232, 240, 0.8)` | Garis batas pemisah halus |
+| **Floating FAB** | `#0F172A` | Tombol `+` tengah melayang kontras tinggi |
 
 ---
 
-# 10. Default Categories
+## 8. Prioritized Implementation Roadmap
 
-Create these default categories during first application initialization:
-
-| Category | Icon |
-|---|---|
-| Makanan | 🍜 |
-| Minuman | ☕ |
-| Transportasi | 🚗 |
-| Belanja | 🛒 |
-| Tagihan | 🧾 |
-| Hiburan | 🎮 |
-| Kesehatan | 💊 |
-| Pendidikan | 📚 |
-| Rumah | 🏠 |
-| Lainnya | 📦 |
-
-Users can create custom categories.
-
-Category management supports:
-
-- Create
-- Edit
-- Delete
-- Icon selection
-- Color selection
-
-Do not allow deletion of a category if transactions reference it without handling the relationship.
-
-Possible solution:
-
-- prevent deletion
-- or move transactions to "Lainnya"
-
-Prefer preventing destructive deletion and explain why.
-
----
-
-# 11. Transaction History
-
-Create a mobile-friendly transaction list.
+Berikut urutan prioritas pengerjaan task:
 
 ```text
-┌──────────────────────────────┐
-│ Transaksi                    │
-│                              │
-│ 🔍 Cari transaksi            │
-│                              │
-│ [Semua] [Makanan] [Belanja]  │
-│                              │
-│ HARI INI                     │
-│                              │
-│ 🍜 Makan siang               │
-│ Makanan • 12:30              │
-│                 -Rp 25.000   │
-│                              │
-│ ☕ Kopi                       │
-│ Minuman • 09:15              │
-│                 -Rp 18.000   │
-│                              │
-│ KEMARIN                      │
-│                              │
-│ 🛒 Groceries                 │
-│ Belanja                      │
-│                 -Rp 185.000  │
-└──────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│ [PRIORITAS 1] Multi-Wallet / Category Wallet                │
+│ - Wallet Entity, Types, Dexie Schema v3, Wallet Repository  │
+│ - Wallet Store (Zustand) & Balance Calculation Engine       │
+│ - Wallet Management UI (Add/Edit Wallet Sheet, Wallet Card) │
+├─────────────────────────────────────────────────────────────┤
+│ [PRIORITAS 2] Income Support                                │
+│ - Update Transaction Type ("expense" | "income")            │
+│ - Income Categories & Default Seed                          │
+│ - Cash Flow Calculations (Total Income, Expense, Surplus)   │
+│ - Dashboard Cash Flow Hero & Metric Updates                 │
+├─────────────────────────────────────────────────────────────┤
+│ [PRIORITAS 3] Direct Add/Edit Form Experience               │
+│ - Direct display of Note, Date, and Wallet in Sheet         │
+│ - Segmented Toggle: Pengeluaran vs Pemasukan                │
+│ - Responsive single-screen thumb-friendly layout            │
+├─────────────────────────────────────────────────────────────┤
+│ [PRIORITAS 4] Full Activity Editing & Actions               │
+│ - Edit Transaction Sheet with populated state               │
+│ - Update & Delete handlers in Zustand & Repositories        │
+│ - Filter by Wallet & Transaction Type in Activity Page      │
+├─────────────────────────────────────────────────────────────┤
+│ [PRIORITAS 5] Branding, Logo, Icon & Visual Polish          │
+│ - App Renaming to MonTrac                                   │
+│ - Updated Modern App Icon (192, 512, apple-touch, SVG)      │
+│ - Palette & Styling Consistency Check                       │
+├─────────────────────────────────────────────────────────────┤
+│ [PRIORITAS 6] Multi-Wallet Dashboard & Reports              │
+│ - Wallet balance carousel/cards on Dashboard                │
+│ - Income vs Expense comparison charts in Reports            │
+├─────────────────────────────────────────────────────────────┤
+│ [PRIORITAS 7] Verification, PWA & End-to-End Testing        │
+│ - Offline testing, Import/Export with Wallet & Income       │
+│ - Service Worker & PWA Manifest verification                │
+└─────────────────────────────────────────────────────────────┘
 ```
-
-Requirements:
-
-- Search
-- Category filter
-- Date filter
-- Sort newest/oldest
-- Edit transaction
-- Delete transaction
-- Group by date
-- Show daily subtotal where useful
-
-For mobile, consider swipe actions:
-
-```text
-Swipe left → Delete
-Swipe right → Edit
-```
-
-But ensure there are accessible alternatives for users who do not use swipe gestures.
-
----
-
-# 12. Reports & Charts
-
-Create a dedicated Reports page.
-
-Use Recharts.
-
-Charts must be responsive.
-
-## Chart 1 — Daily Spending
-
-Display spending by day for the selected month.
-
-Example:
-
-```text
-Pengeluaran Harian
-
-Rp500k │       █
-Rp400k │   █   █
-Rp300k │ █ █ █ █
-Rp200k │ █ █ █ █ █
-Rp100k │ █ █ █ █ █ █
-       └────────────
-         1 5 10 15 20 25
-```
-
-Use either:
-
-- BarChart
-- LineChart
-
-Choose whichever gives better mobile readability.
-
----
-
-## Chart 2 — Spending by Category
-
-Use a donut/pie chart.
-
-Example:
-
-```text
-        DONUT
-
-     Makanan 35%
-     Transport 20%
-     Belanja 18%
-     Tagihan 15%
-     Lainnya 12%
-```
-
-Show legend/list beneath chart.
-
----
-
-## Chart 3 — Monthly Comparison
-
-Show last 6 months.
-
-```text
-Pengeluaran 6 Bulan
-
-Jan  ███████
-Feb  █████████
-Mar  ██████
-Apr  ███████████
-May  ████████
-Jun  ██████████
-```
-
----
-
-## Report statistics
-
-Display:
-
-- Total spending
-- Average daily spending
-- Largest transaction
-- Largest category
-- Current month vs previous month
-
-Example:
-
-```text
-Total
-Rp 4.250.000
-
-Rata-rata / hari
-Rp 141.666
-
-Kategori terbesar
-Makanan
-
-Transaksi terbesar
-Rp 750.000
-```
-
----
-
-# 13. Budget Requirements
-
-Support monthly budgeting.
-
-Example:
-
-```text
-August 2026
-
-Budget
-Rp 6.000.000
-
-Spent
-Rp 4.250.000
-
-Remaining
-Rp 1.750.000
-
-Usage
-71%
-```
-
-Optional category budgets:
-
-```text
-Makanan
-
-Budget
-Rp 1.500.000
-
-Spent
-Rp 950.000
-
-Remaining
-Rp 550.000
-
-63%
-```
-
-If spending exceeds budget:
-
-```text
-Budget exceeded
--Rp 250.000
-```
-
-Use a clear warning state.
-
----
-
-# 14. PWA & Mobile Requirements
-
-MoneyTrack must be a real installable PWA.
-
-Requirements:
-
-- Web App Manifest
-- Service Worker
-- Offline support
-- Standalone display
-- App icons
-- Theme color
-- Apple mobile web app metadata
-- Install prompt
-- Application shell caching
-- Offline transaction entry
-
-After installation, user should be able to open:
-
-```text
-📱 Home Screen
-
-┌─────────┐
-│   💰    │
-│ MoneyTrack│
-└─────────┘
-```
-
-without typing a URL.
-
----
-
-# 15. Offline-First Behavior
-
-The application must work without internet after initial loading/install.
-
-The following must work offline:
-
-- Dashboard
-- Add expense
-- Edit expense
-- Delete expense
-- Categories
-- Transaction history
-- Reports
-- Budget
-- Settings
-- Export data
-
-Google OAuth obviously requires internet when the user needs to authenticate again.
-
-Do not make every transaction depend on a server request.
-
----
-
-# 16. Backup & Restore
-
-Because there is no server database, backup is mandatory.
-
-Create:
-
-## Export JSON
-
-Export all application data.
-
-Example:
-
-```json
-{
-  "schemaVersion": 1,
-  "application": "MoneyTrack",
-  "exportedAt": "2026-08-27T10:00:00.000Z",
-  "categories": [],
-  "transactions": [],
-  "settings": {}
-}
-```
-
-Filename:
-
-```text
-moneytrack-backup-YYYY-MM-DD.json
-```
-
----
-
-## Import JSON
-
-Requirements:
-
-1. Select JSON file
-2. Validate JSON
-3. Validate schema
-4. Validate required fields
-5. Show preview/confirmation
-6. Import to IndexedDB
-7. Refresh application state
-8. Show success message
-
-Do not blindly insert unvalidated JSON.
-
-Provide options:
-
-```text
-Replace existing data
-Merge with existing data
-Cancel
-```
-
-If merge is implemented, use transaction IDs to avoid duplicate records.
-
----
-
-## Export CSV
-
-Allow transactions to be exported to CSV.
-
-Columns:
-
-```text
-Date
-Amount
-Category
-Note
-Payment Method
-Created At
-```
-
-The CSV should open correctly in Microsoft Excel.
-
----
-
-# 17. Settings
-
-Settings screen:
-
-```text
-Pengaturan
-
-ACCOUNT
-──────────────
-Profile
-Email
-Logout
-
-PREFERENCES
-──────────────
-Currency
-Default payment method
-Monthly budget
-
-CATEGORIES
-──────────────
-Manage categories
-
-DATA
-──────────────
-Export JSON
-Import JSON
-Export CSV
-Clear all data
-```
-
-Before:
-
-```text
-Clear all data
-```
-
-show a confirmation dialog.
-
----
-
-# 18. Mobile Navigation
-
-Use bottom navigation.
-
-```text
-┌──────────────────────────────┐
-│                              │
-│         CONTENT              │
-│                              │
-│                              │
-├──────────────────────────────┤
-│ Home  Transactions  + Reports│
-│                         Settings
-└──────────────────────────────┘
-```
-
-Recommended:
-
-```text
-Home
-Transactions
-+
-Reports
-Settings
-```
-
-The center `+` button should be visually prominent.
-
----
-
-# 19. Indonesian Localization
-
-The primary language is Indonesian.
-
-Use:
-
-```text
-Pengeluaran
-Transaksi
-Kategori
-Laporan
-Pengaturan
-Anggaran
-Sisa
-Hari ini
-Kemarin
-Bulan ini
-Simpan
-Hapus
-Edit
-Batal
-Cari transaksi
-Tambah pengeluaran
-```
-
-Currency:
-
-```text
-IDR
-```
-
-Format:
-
-```text
-Rp 25.000
-Rp 125.000
-Rp 1.250.000
-Rp 10.000.000
-```
-
-Use Indonesian date formatting.
-
----
-
-# 20. Mobile UX Principles
-
-This is a mobile-first application.
-
-Primary target widths:
-
-```text
-360px
-375px
-390px
-430px
-```
-
-The design must work comfortably on these widths.
-
-Use:
-
-- large buttons
-- large tap targets
-- rounded cards
-- bottom sheets
-- sticky actions
-- bottom navigation
-- numeric keyboard
-- short forms
-- minimal typing
-- readable charts
-- good spacing
-
-Avoid:
-
-- desktop-first dashboards
-- huge tables
-- tiny controls
-- complicated sidebars
-- excessive animations
-- excessive gradients
-- unnecessary decoration
-- long forms
-
----
-
-# 21. Desktop Behavior
-
-Desktop is secondary.
-
-On larger screens:
-
-- center the application shell
-- optionally use a sidebar
-- increase content width
-- preserve mobile-friendly interactions
-
-Do not redesign the application into an enterprise accounting system.
-
-The mobile experience remains the primary target.
-
----
-
-# 22. Empty States
-
-Create friendly empty states.
-
-No transactions:
-
-```text
-Belum ada pengeluaran
-
-Catat pengeluaran pertamamu
-untuk mulai melihat laporan keuangan.
-
-[ + Tambah Pengeluaran ]
-```
-
-No search results:
-
-```text
-Transaksi tidak ditemukan
-```
-
-No categories:
-
-```text
-Belum ada kategori
-```
-
----
-
-# 23. Error Handling
-
-Handle:
-
-- Invalid amount
-- Empty required fields
-- IndexedDB errors
-- Import errors
-- Invalid JSON
-- Invalid schema
-- Duplicate transactions
-- Storage errors
-- Authentication errors
-
-Do not expose technical errors directly.
-
-Instead show messages such as:
-
-```text
-Gagal menyimpan transaksi.
-Silakan coba lagi.
-```
-
----
-
-# 24. Data Calculation Layer
-
-Do not duplicate financial calculation logic in React components.
-
-Create reusable functions.
-
-Examples:
-
-```typescript
-calculateMonthlySpending()
-calculateTodaySpending()
-calculateRemainingBudget()
-calculateBudgetPercentage()
-calculateCategorySpending()
-calculateMonthlyComparison()
-calculateAverageDailySpending()
-findLargestTransaction()
-findLargestCategory()
-```
-
-These functions should be pure and testable.
-
----
-
-# 25. Performance Requirements
-
-The application should feel instant.
-
-Optimize:
-
-- IndexedDB queries
-- React rendering
-- Zustand subscriptions
-- chart rendering
-- bundle size
-- PWA assets
-
-Charts can be lazy-loaded if useful.
-
-Do not add unnecessary dependencies.
-
-Avoid unnecessary client components.
-
----
-
-# 26. Security Requirements
-
-Authentication data and expense data must be separated.
-
-Do not:
-
-- store OAuth tokens in IndexedDB
-- manually store authentication tokens in localStorage
-- send transactions to a third-party analytics service
-- create unnecessary external APIs
-
-Transaction data should remain local to the device.
-
----
-
-# 27. Privacy
-
-The application is designed for personal financial data.
-
-By default:
-
-```text
-Transaction
-    ↓
-IndexedDB
-    ↓
-User's device
-```
-
-Do not send transaction data to any third-party service.
-
-No advertising.
-
-No analytics required for MVP.
-
-No financial data tracking.
-
----
-
-# 28. Deployment
-
-The application should be deployable using:
-
-```text
-GitHub
-   ↓
-Vercel
-   ↓
-Next.js Application
-```
-
-Target:
-
-```text
-Vercel Free
-```
-
-No paid infrastructure should be required.
-
-Required environment variables should be documented in `.env.example`.
-
-Example:
-
-```env
-AUTH_SECRET=
-AUTH_GOOGLE_ID=
-AUTH_GOOGLE_SECRET=
-```
-
-Use the correct environment variable naming required by the chosen Auth.js implementation.
-
----
-
-# 29. README Requirements
-
-Create a complete README containing:
-
-## Setup
-
-```bash
-npm install
-npm run dev
-```
-
-## Environment variables
-
-Explain:
-
-- Auth secret
-- Google OAuth Client ID
-- Google OAuth Client Secret
-
-## Google OAuth setup
-
-Explain:
-
-1. Create Google OAuth credentials
-2. Configure authorized origins
-3. Configure callback URL
-4. Add credentials to `.env.local`
-
-## Vercel deployment
-
-Explain:
-
-1. Push to GitHub
-2. Import repository into Vercel
-3. Configure environment variables
-4. Deploy
-5. Configure Google OAuth production callback URL
-
-## PWA testing
-
-Explain how to:
-
-- install PWA
-- test offline mode
-- test IndexedDB
-- test backup/restore
-
----
-
-# 30. Testing Requirements
-
-At minimum test:
-
-### Authentication
-
-- Login
-- Logout
-- Protected routes
-
-### Transactions
-
-- Add
-- Edit
-- Delete
-- Search
-- Filter
-- Date filtering
-
-### Categories
-
-- Add
-- Edit
-- Delete
-- Category selection
-
-### Budget
-
-- Set budget
-- Calculate remaining
-- Calculate percentage
-- Budget exceeded state
-
-### Reports
-
-- Daily calculation
-- Monthly calculation
-- Category calculation
-- 6-month comparison
-
-### Backup
-
-- JSON export
-- JSON import
-- Invalid JSON
-- CSV export
-
-### PWA
-
-- Install
-- Offline access
-- Offline transaction creation
-
----
-
-# 31. Initial Seed Data
-
-For development/demo purposes, create realistic sample transactions.
-
-Example:
-
-```text
-Makan siang
-Rp 25.000
-
-Kopi
-Rp 18.000
-
-Transport
-Rp 22.000
-
-Belanja groceries
-Rp 185.000
-
-Pulsa
-Rp 50.000
-```
-
-However, production initialization should allow the user to start with empty data.
-
-Do not permanently hardcode sample transactions into production.
-
----
-
-# 32. UX Priority
-
-Implement features according to this priority:
-
-### P0 — Critical
-
-1. Login
-2. Dashboard
-3. Add Expense
-4. IndexedDB
-5. Transaction history
-6. PWA
-7. Backup/restore
-
-### P1 — Important
-
-8. Categories
-9. Budget
-10. Reports
-11. Charts
-
-### P2 — Nice to have
-
-12. Advanced filters
-13. Swipe gestures
-14. Category budgets
-15. Advanced analytics
-
----
-
-# 33. Important Product Decision
-
-Do NOT over-engineer this project.
-
-This is a:
-
-> Personal expense tracker
-
-It is NOT:
-
-- accounting software
-- ERP
-- banking application
-- financial planning platform
-- multi-user SaaS
-- investment platform
-
-Keep the architecture simple.
-
-The main value is:
-
-```text
-Fast input
-+
-Local data
-+
-Useful dashboard
-+
-Simple reports
-+
-Offline PWA
-```
-
----
-
-# 34. Final User Flow
-
-The ideal daily flow is:
-
-```text
-Open MoneyTrack
-       ↓
-Dashboard
-       ↓
-Tap +
-       ↓
-Amount
-       ↓
-Tap Category
-       ↓
-Tap Save
-       ↓
-Success
-       ↓
-Dashboard updated
-```
-
-This flow should require minimal interaction.
-
----
-
-# 35. Definition of Done
-
-The application is considered complete when:
-
-- [ ] Google OAuth login works
-- [ ] JWT session works without a database
-- [ ] Dashboard works
-- [ ] Transactions are stored in IndexedDB
-- [ ] Add expense works
-- [ ] Edit expense works
-- [ ] Delete expense works
-- [ ] Category management works
-- [ ] Monthly budget works
-- [ ] Reports work
-- [ ] Charts work
-- [ ] Search works
-- [ ] Filters work
-- [ ] JSON export works
-- [ ] JSON import works
-- [ ] CSV export works
-- [ ] Clear data works with confirmation
-- [ ] PWA is installable
-- [ ] Application works offline
-- [ ] Mobile UI works at 360px–430px
-- [ ] Desktop responsive layout works
-- [ ] Indonesian currency formatting works
-- [ ] README is complete
-- [ ] `.env.example` exists
-- [ ] Project can be deployed to Vercel Free
-- [ ] No database is required
-- [ ] No paid infrastructure is required
-
----
-
-# 36. Implementation Instruction for Claude
-
-Build this application incrementally.
-
-Start with:
-
-1. Project setup
-2. Authentication
-3. IndexedDB/Dexie architecture
-4. Application shell
-5. Mobile navigation
-6. Dashboard
-7. Add Expense
-8. Transaction History
-9. Categories
-10. Budget
-11. Reports/Charts
-12. Backup/Restore
-13. PWA
-14. Testing
-15. README
-
-Before adding new libraries, check whether the existing stack can solve the requirement.
-
-Do not introduce a server database.
-
-Do not create unnecessary APIs.
-
-Keep the application local-first.
-
-Prioritize mobile UX over desktop UX.
-
-The **Add Expense flow is the highest-priority interaction in the entire application**.
-
-The final result should feel like a polished personal finance mobile app rather than a generic CRUD dashboard.
