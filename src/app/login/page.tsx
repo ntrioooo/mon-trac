@@ -110,11 +110,6 @@ export default function LoginPage() {
             <Lock className="h-3 w-3 text-violet-400" />
             <span>End-to-end encrypted</span>
           </div>
-          <span className="text-slate-300">·</span>
-          <div className="flex items-center gap-1 text-[10px] font-bold text-slate-500">
-            <span>📱</span>
-            <span>Offline-first</span>
-          </div>
         </div>
       </div>
     </div>

@@ -39,11 +39,6 @@ export function BottomNavigation({ onAddExpense }: BottomNavigationProps) {
           >
             <Plus className="h-7 w-7 text-white" strokeWidth={2.5} />
           </button>
-          <span
-            className="mt-1 text-[9px] font-bold text-violet-600"
-          >
-            Catat
-          </span>
         </div>
 
         <NavItem {...navItems[2]} isActive={pathname === navItems[2].href} />
@@ -73,7 +68,7 @@ function NavItem({
       <div
         className={cn(
           "flex items-center justify-center rounded-full px-3.5 py-1.5 transition-all",
-          isActive ? "bg-[#EDE9FE]" : ""
+          isActive ? "" : ""
         )}
       >
         <Icon
