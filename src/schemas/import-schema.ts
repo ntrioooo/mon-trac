@@ -48,7 +48,7 @@ const settingsImportSchema = z.object({
 
 export const backupSchema = z.object({
   schemaVersion: z.number().int().positive(),
-  application: z.enum(["MonTrac", "MoneyTrack", "IngatMiskin", "Ingat Miskin"]),
+  application: z.enum(["JagaJajan", "MonTrac", "MoneyTrack", "IngatMiskin", "Ingat Miskin"]),
   exportedAt: z.string(),
   wallets: z.array(walletImportSchema).optional().default([]),
   categories: z.array(categoryImportSchema),

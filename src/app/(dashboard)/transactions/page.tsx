@@ -6,7 +6,7 @@ import { useCategoryStore } from "@/stores/category-store";
 import { useWalletStore } from "@/stores/wallet-store";
 import { groupTransactionsByDate } from "@/lib/calculations/transaction-calculations";
 import { formatCurrency, getRelativeDayLabel } from "@/lib/utils";
-import { Search, X, SlidersHorizontal } from "lucide-react";
+import { Search, X, SlidersHorizontal, Receipt } from "lucide-react";
 import { CategoryIcon } from "@/components/ui/category-icon";
 import { cn } from "@/lib/utils";
 import type { Transaction, TransactionType } from "@/types/transaction";
@@ -73,7 +73,7 @@ export default function TransactionsPage() {
       {/* ── Header ── */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-black" style={{ color: "#1A2B6B" }}>Aktivitas 📋</h1>
+          <h1 className="text-2xl font-black" style={{ color: "#1A2B6B" }}>Aktivitas</h1>
           <p className="text-xs font-semibold text-[#9AA8C8] mt-0.5">
             {filtered.length} transaksi
           </p>
@@ -238,7 +238,9 @@ export default function TransactionsPage() {
       {/* ── Transaction List ── */}
       {grouped.length === 0 ? (
         <div className="fun-card mt-8 p-10 text-center">
-          <div className="mb-3 text-4xl">{hasActiveFilter ? "🔍" : "🌱"}</div>
+          <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#E0F0FB] text-[#1A2B6B]">
+            {hasActiveFilter ? <Search className="h-6 w-6" /> : <Receipt className="h-6 w-6" />}
+          </div>
           <p className="text-sm font-bold text-[#1A1A2E]">
             {hasActiveFilter ? "Transaksi tidak ditemukan" : "Belum ada transaksi"}
           </p>

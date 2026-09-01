@@ -73,7 +73,7 @@ export default function SettingsPage() {
   const handleExportJSON = () => {
     const data = {
       schemaVersion: 2,
-      application: "MonTrac" as const,
+      application: "JagaJajan" as const,
       exportedAt: new Date().toISOString(),
       wallets,
       categories,
@@ -86,7 +86,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `montrac-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `jagajajan-backup-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -101,6 +101,7 @@ export default function SettingsPage() {
       try {
         const data = JSON.parse(await file.text());
         if (
+          data.application !== "JagaJajan" &&
           data.application !== "MonTrac" &&
           data.application !== "MoneyTrack" &&
           data.application !== "IngatMiskin" &&

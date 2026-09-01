@@ -66,14 +66,13 @@ export default function ReportsPage() {
   };
 
   const isPositive = netCashFlow >= 0;
-  const moodEmoji = netCashFlow > 0 ? "😄" : netCashFlow === 0 ? "😐" : "😅";
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-6 pb-8">
       {/* ── Header ── */}
       <div className="mb-5 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black" style={{ color: "#1A2B6B" }}>Analitik 📊</h1>
+          <h1 className="text-2xl font-black" style={{ color: "#1A2B6B" }}>Analitik</h1>
           <p className="text-xs font-semibold text-[#9AA8C8] mt-0.5">
             Ringkasan keuangan bulanan
           </p>
@@ -109,32 +108,29 @@ export default function ReportsPage() {
       >
         <div className="absolute -right-4 -top-4 h-20 w-20 rounded-full bg-[#A8C8E8] opacity-15" />
         <div className="absolute right-10 -bottom-5 h-14 w-14 rounded-full bg-[#F4A0C0] opacity-15" />
-        <div className="relative flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-wider text-white/60 mb-1">
-              Arus Kas Bersih
-            </p>
-            <p className="text-2xl font-black tabular-nums text-white">
-              {isPositive ? "+" : "-"}{formatCurrency(Math.abs(netCashFlow))}
-            </p>
-          </div>
-          <span className="text-4xl">{moodEmoji}</span>
+        <div className="relative">
+          <p className="text-[10px] font-black uppercase tracking-wider text-white/60 mb-1">
+            Arus Kas Bersih
+          </p>
+          <p className="text-2xl font-black tabular-nums text-white">
+            {isPositive ? "+" : "-"}{formatCurrency(Math.abs(netCashFlow))}
+          </p>
         </div>
       </div>
 
       {/* ── Stats Grid ── */}
       <div className="mb-4 grid grid-cols-2 gap-3">
-        <StatCard label="💸 Pengeluaran" value={formatCurrency(totalSpending)} color="#C0456A" bg="#FDE8F2" />
-        <StatCard label="💰 Pemasukan" value={formatCurrency(totalIncome)} color="#3A6E28" bg="#E8F6E2" />
-        <StatCard label="☀️ Rata-rata / Hari" value={formatCurrency(avgDaily)} color="#A07010" bg="#FFF5D6" />
-        <StatCard label="🏆 Terbesar" value={largest ? formatCurrency(largest.amount) : "-"} color="#2A6BA8" bg="#E0F0FB" subValue={largestCat?.category.name} />
+        <StatCard label="Pengeluaran" value={formatCurrency(totalSpending)} color="#C0456A" bg="#FDE8F2" />
+        <StatCard label="Pemasukan" value={formatCurrency(totalIncome)} color="#3A6E28" bg="#E8F6E2" />
+        <StatCard label="Rata-rata / Hari" value={formatCurrency(avgDaily)} color="#A07010" bg="#FFF5D6" />
+        <StatCard label="Terbesar" value={largest ? formatCurrency(largest.amount) : "-"} color="#2A6BA8" bg="#E0F0FB" subValue={largestCat?.category.name} />
       </div>
 
       {/* ── Daily Bar Chart ── */}
       {dailyChartData.length > 0 && (
         <div className="fun-card mb-4 p-5">
           <p className="mb-3 text-[11px] font-black uppercase tracking-wider text-[#9AA8C8]">
-            📅 Pengeluaran Harian
+            Pengeluaran Harian
           </p>
           <div className="h-44">
             <ResponsiveContainer width="100%" height="100%">
@@ -159,7 +155,7 @@ export default function ReportsPage() {
       {categorySpending.length > 0 && (
         <div className="fun-card mb-4 p-5">
           <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            🏷️ Porsi per Kategori
+            Porsi per Kategori
           </p>
           <div className="flex items-center gap-5">
             <div className="h-32 w-32 shrink-0">
@@ -210,7 +206,7 @@ export default function ReportsPage() {
       {monthlyComparison.some((m) => m.total > 0) && (
         <div className="fun-card mb-4 p-5">
           <p className="mb-3 text-[11px] font-black uppercase tracking-wider text-[#9AA8C8]">
-            📈 6 Bulan Terakhir
+            6 Bulan Terakhir
           </p>
           <div className="h-40">
             <ResponsiveContainer width="100%" height="100%">
@@ -227,7 +223,6 @@ export default function ReportsPage() {
 
       {monthTransactions.length === 0 && (
         <div className="fun-card mt-8 p-10 text-center">
-          <div className="mb-3 text-4xl">📊</div>
           <p className="text-sm font-black" style={{ color: "#1A2B6B" }}>Belum ada data bulan ini</p>
           <p className="mt-1 text-xs font-semibold text-[#9AA8C8]">
             Pilih bulan lain atau catat transaksi baru
