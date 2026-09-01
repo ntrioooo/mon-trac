@@ -34,7 +34,7 @@ export function PwaInstallModal() {
           <div className="flex items-center gap-3">
             <div className="relative h-11 w-11 shrink-0 rounded-2xl overflow-hidden shadow-md">
               <Image
-                src="/icons/icon-logo.png"
+                src="/icons/logo-baru.png"
                 alt="Ingat Miskin Logo"
                 width={44}
                 height={44}

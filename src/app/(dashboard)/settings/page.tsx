@@ -5,9 +5,10 @@ import { useSession, signOut } from "next-auth/react";
 import { useSettingsStore } from "@/stores/settings-store";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
+import { useWalletStore } from "@/stores/wallet-store";
 import { usePwaStore } from "@/stores/pwa-store";
 import { db, initializeDatabase } from "@/lib/db";
-import { PAYMENT_METHOD_LABELS, type PaymentMethod } from "@/types/transaction";
+
 import {
   LogOut,
   Download,
@@ -15,11 +16,12 @@ import {
   FileSpreadsheet,
   Trash2,
   ChevronRight,
-  CreditCard,
   User,
   Cloud,
   RefreshCw,
   Smartphone,
+  Database,
+  Shield,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -30,13 +32,13 @@ export default function SettingsPage() {
   const { data: session } = useSession();
 
   const settings = useSettingsStore((s) => s.settings);
-  const setDefaultPaymentMethod = useSettingsStore(
-    (s) => s.setDefaultPaymentMethod,
-  );
+
   const transactions = useTransactionStore((s) => s.transactions);
   const categories = useCategoryStore((s) => s.categories);
+  const wallets = useWalletStore((s) => s.wallets);
   const loadTransactions = useTransactionStore((s) => s.loadTransactions);
   const loadCategories = useCategoryStore((s) => s.loadCategories);
+  const loadWallets = useWalletStore((s) => s.loadWallets);
   const loadSettings = useSettingsStore((s) => s.loadSettings);
 
   const promptInstall = usePwaStore((s) => s.promptInstall);
@@ -57,9 +59,9 @@ export default function SettingsPage() {
     setIsSyncing(false);
 
     if (result.success) {
-      await Promise.all([loadTransactions(), loadSettings()]);
+      await Promise.all([loadTransactions(), loadWallets(), loadCategories(), loadSettings()]);
       setImportStatus(
-        `✓ Berhasil disinkronkan (${result.count} data transaksi diproses)`,
+        `✓ Berhasil disinkronkan (${result.count} data transaksi & dompet diproses)`,
       );
     } else {
       setImportStatus(
@@ -70,9 +72,10 @@ export default function SettingsPage() {
 
   const handleExportJSON = () => {
     const data = {
-      schemaVersion: 1,
-      application: "IngatMiskin" as const,
+      schemaVersion: 2,
+      application: "MonTrac" as const,
       exportedAt: new Date().toISOString(),
+      wallets,
       categories,
       transactions,
       settings,
@@ -83,7 +86,7 @@ export default function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `ingatmiskin-backup-${new Date().toISOString().split("T")[0]}.json`;
+    a.download = `montrac-backup-${new Date().toISOString().split("T")[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -98,10 +101,10 @@ export default function SettingsPage() {
       try {
         const data = JSON.parse(await file.text());
         if (
-          (data.application !== "IngatMiskin" &&
-            data.application !== "MoneyTrack" &&
-            data.application !== "Ingat Miskin") ||
-          !data.schemaVersion
+          data.application !== "MonTrac" &&
+          data.application !== "MoneyTrack" &&
+          data.application !== "IngatMiskin" &&
+          data.application !== "Ingat Miskin"
         ) {
           setImportStatus("File bukan backup yang valid");
           return;
@@ -109,13 +112,17 @@ export default function SettingsPage() {
         await db.transactions.clear();
         await db.categories.clear();
         await db.settings.clear();
-        if (data.categories?.length)
-          await db.categories.bulkPut(data.categories);
-        if (data.transactions?.length)
-          await db.transactions.bulkPut(data.transactions);
+        await db.wallets.clear();
+
+        if (data.wallets?.length) await db.wallets.bulkPut(data.wallets);
+        if (data.categories?.length) await db.categories.bulkPut(data.categories);
+        if (data.transactions?.length) await db.transactions.bulkPut(data.transactions);
         if (data.settings) await db.settings.put(data.settings);
+
+        await initializeDatabase();
         await Promise.all([
           loadTransactions(),
+          loadWallets(),
           loadCategories(),
           loadSettings(),
         ]);
@@ -130,29 +137,32 @@ export default function SettingsPage() {
   const handleExportCSV = () => {
     const headers = [
       "Date",
+      "Type",
       "Amount",
       "Category",
+      "Wallet",
       "Note",
-      "Payment Method",
       "Created At",
     ];
     const rows = transactions.map((t) => {
       const cat = categories.find((c) => c.id === t.categoryId);
+      const wallet = wallets.find((w) => w.id === t.walletId);
       return [
         t.date,
+        t.type || "expense",
         t.amount.toString(),
         cat?.name ?? "Unknown",
+        wallet?.name ?? "Dompet Tunai",
         t.note ?? "",
-        (t.paymentMethod ? PAYMENT_METHOD_LABELS[t.paymentMethod] : ""),
         t.createdAt,
-      ].map((v) => `"${v.replace(/"/g, '""')}"`);
+      ].map((v) => `"${String(v).replace(/"/g, '""')}"`);
     });
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `moneytrack-${new Date().toISOString().split("T")[0]}.csv`;
+    a.download = `montrac-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -161,208 +171,224 @@ export default function SettingsPage() {
     await db.transactions.clear();
     await db.categories.clear();
     await db.settings.clear();
+    await db.wallets.clear();
     await initializeDatabase();
-    await Promise.all([loadTransactions(), loadCategories(), loadSettings()]);
+    await Promise.all([loadTransactions(), loadWallets(), loadCategories(), loadSettings()]);
     setShowClearConfirm(false);
   };
 
   return (
     <div className="mx-auto max-w-lg px-4 pt-6 pb-8">
-      <h1 className="mb-5 text-2xl font-extrabold tracking-tight text-[#0F172A]">
-        Pengaturan
-      </h1>
+      {/* ── Header ── */}
+      <div className="mb-6">
+        <h1 className="text-2xl font-extrabold text-[#0F172A]">Akun</h1>
+        <p className="text-xs font-semibold text-slate-400 mt-0.5">Kelola data dan preferensi</p>
+      </div>
 
-      {/* Akses Cepat / Install PWA */}
-      <SectionTitle>Aplikasi</SectionTitle>
-      <div className="pastel-card mb-5 overflow-hidden">
+      {/* Profile Card */}
+      <div
+        className="fun-card mb-5 p-4 flex items-center gap-4"
+        style={{ background: "linear-gradient(135deg, rgba(196,181,253,0.15) 0%, rgba(196,181,253,0.08) 100%)" }}
+      >
+        <div
+          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-lg font-extrabold text-violet-700"
+          style={{ backgroundColor: "rgba(196,181,253,0.25)" }}
+        >
+          {(session?.user?.name?.[0] ?? "U").toUpperCase()}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-base font-extrabold text-[#0F172A]">
+            {session?.user?.name ?? "Pengguna"}
+          </div>
+          <div className="truncate text-xs font-semibold text-slate-400 mt-0.5">
+            {session?.user?.email}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Aplikasi ── */}
+      <SectionTitle icon={Smartphone}>Aplikasi</SectionTitle>
+      <div className="fun-card mb-5 overflow-hidden">
         <button
           onClick={handleInstallClick}
-          className="flex w-full items-center gap-3.5 px-5 py-4 text-left transition-colors hover:bg-slate-50 cursor-pointer"
+          className="flex w-full items-center gap-3.5 px-5 py-4 text-left transition-colors hover:bg-violet-50 cursor-pointer"
           id="btn-install-a2hs"
         >
-          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
-            <Smartphone className="h-5 w-5" />
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+            style={{ backgroundColor: "rgba(196,181,253,0.25)" }}
+          >
+            <Smartphone className="h-5 w-5 text-violet-600" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-extrabold text-[#0F172A]">
-              Akses di Layar Utama
-            </div>
-            <div className="text-xs font-medium text-slate-400">
-              {isStandalone
-                ? "✓ Sudah terpasang di HP Anda"
-                : "Pasang icon di home screen untuk akses cepat"}
+            <div className="text-sm font-bold text-[#0F172A]">Akses di Layar Utama</div>
+            <div className="text-xs font-semibold text-slate-400">
+              {isStandalone ? "✓ Sudah terpasang di HP Anda" : "Pasang icon di home screen"}
             </div>
           </div>
           <ChevronRight className="h-4 w-4 text-slate-300" />
         </button>
       </div>
 
-      {/* Account */}
-      <SectionTitle>Akun</SectionTitle>
-      <div className="pastel-card mb-5 overflow-hidden">
-        <div className="flex items-center gap-3 px-5 py-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
-            <User className="h-5 w-5" />
+      {/* ── Akun ── */}
+      <SectionTitle icon={User}>Akun</SectionTitle>
+      <div className="fun-card mb-5 overflow-hidden">
+        <button
+          onClick={() => signOut({ callbackUrl: "/login" })}
+          className="flex w-full items-center gap-3.5 px-5 py-4 text-left transition-colors hover:bg-rose-50 cursor-pointer"
+        >
+          <div
+            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
+            style={{ backgroundColor: "rgba(239,68,68,0.1)" }}
+          >
+            <LogOut className="h-5 w-5 text-rose-500" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="truncate text-sm font-extrabold text-[#0F172A]">
-              {session?.user?.name ?? "Pengguna"}
-            </div>
-            <div className="truncate text-xs font-medium text-slate-400">
-              {session?.user?.email}
-            </div>
+            <div className="text-sm font-bold text-rose-500">Keluar dari Akun</div>
+            <div className="text-xs font-semibold text-slate-400">Kamu akan diarahkan ke halaman login</div>
           </div>
-        </div>
-        <div className="border-t border-slate-100 bg-slate-50/50">
-          <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-3 px-5 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50/50 transition-colors cursor-pointer"
-          >
-            <LogOut className="h-4 w-4" />
-            Keluar dari Akun
-          </button>
-        </div>
+          <ChevronRight className="h-4 w-4 text-slate-300" />
+        </button>
       </div>
 
-      {/* Preferences */}
-      <SectionTitle>Preferensi</SectionTitle>
-      <div className="mb-5 space-y-3">
-        {/* Payment Method */}
-        <div className="pastel-card p-5">
-          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[#0F172A]">
-            <CreditCard className="h-4 w-4 text-violet-600" />
-            Metode Pembayaran Default
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {(
-              Object.entries(PAYMENT_METHOD_LABELS) as [PaymentMethod, string][]
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                onClick={() => setDefaultPaymentMethod(value)}
-                className={cn(
-                  "rounded-xl border px-3 py-1.5 text-xs font-bold transition-colors cursor-pointer",
-                  settings.defaultPaymentMethod === value
-                    ? "border-violet-600 bg-violet-50 text-violet-700 shadow-xs"
-                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-                )}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Data & Backup */}
-      <SectionTitle>Data & Backup</SectionTitle>
-      <div className="pastel-card mb-5 overflow-hidden divide-y divide-slate-100">
+      {/* ── Data & Backup ── */}
+      <SectionTitle icon={Database}>Data &amp; Backup</SectionTitle>
+      <div className="fun-card mb-5 overflow-hidden">
         <SettingsRow
           icon={isSyncing ? RefreshCw : Cloud}
-          label={isSyncing ? "Menyinkronkan..." : "Sync"}
+          label={isSyncing ? "Menyinkronkan..." : "Sinkronisasi Cloud"}
+          sublabel="Sync data ke server"
           onClick={handleManualSync}
         />
         <SettingsRow
           icon={Download}
           label="Ekspor JSON"
+          sublabel="Simpan data sebagai file backup"
           onClick={handleExportJSON}
         />
         <SettingsRow
           icon={Upload}
           label="Impor JSON"
+          sublabel="Pulihkan dari file backup"
           onClick={handleImportJSON}
         />
         <SettingsRow
           icon={FileSpreadsheet}
           label="Ekspor CSV"
+          sublabel="Buka di Excel atau Google Sheets"
           onClick={handleExportCSV}
         />
         <SettingsRow
           icon={Trash2}
           label="Hapus semua data"
+          sublabel="Hapus semua transaksi lokal"
           onClick={() => setShowClearConfirm(true)}
           destructive
         />
       </div>
 
       {importStatus && (
-        <div className="mb-5 flex items-center justify-between rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 shadow-xs">
-          <span className="text-sm font-semibold text-emerald-800">
-            {importStatus}
-          </span>
+        <div
+          className="mb-5 flex items-center justify-between rounded-[var(--radius)] border-2 px-4 py-3"
+          style={{ borderColor: "#BBF7D0", backgroundColor: "#F0FDF4" }}
+        >
+          <div className="flex items-center gap-2">
+            <Shield className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-bold text-emerald-700">
+              {importStatus}
+            </span>
+          </div>
           <button
             onClick={() => setImportStatus(null)}
-            className="text-xs font-bold text-emerald-600 underline"
+            className="text-xs font-bold underline text-emerald-600"
           >
             Tutup
           </button>
         </div>
       )}
 
-      <p className="text-center text-xs font-medium text-slate-400">
-        Data tersimpan secara lokal & tersinkron aman ke cloud.
+      {/* ── Enkripsi & Privasi Info ── */}
+      <div
+        className="mb-5 rounded-[var(--radius)] p-4 flex gap-3"
+        style={{ backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0" }}
+      >
+        <Shield className="h-5 w-5 text-emerald-500 shrink-0 mt-0.5" strokeWidth={2.5} />
+        <div>
+          <p className="text-sm font-extrabold text-emerald-700 mb-0.5">
+            Data kamu terenkripsi &amp; aman
+          </p>
+          <p className="text-xs font-semibold text-emerald-600">
+            Semua data keuangan disimpan secara lokal di perangkat. Saat sinkronisasi ke cloud, data dienkripsi end-to-end sehingga hanya kamu yang bisa membacanya. Kami tidak pernah bisa melihat isi data kamu.
+          </p>
+        </div>
+      </div>
+
+      <p className="text-center text-xs font-semibold text-slate-400 mb-5">
+        JagaJajan v1.0 · Made with ❤️
       </p>
 
-      {/* Clear Data Bottom Sheet Modal */}
+      {/* Clear Data Bottom Sheet */}
       {showClearConfirm && (
         <div className="fixed inset-0 z-50">
           <div
-            className="animate-fade-in absolute inset-0 bg-slate-900/50 backdrop-blur-xs"
+            className="animate-fade-in absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
             onClick={() => setShowClearConfirm(false)}
           />
           <div
-            className="animate-slide-up absolute bottom-0 left-0 right-0 rounded-t-3xl bg-white p-6 shadow-2xl"
-            style={{ paddingBottom: "env(safe-area-inset-bottom, 1.5rem)" }}
+            className="animate-slide-up absolute bottom-0 left-0 right-0 bg-white shadow-2xl"
+            style={{
+              borderRadius: "var(--radius-lg) var(--radius-lg) 0 0",
+              paddingBottom: "env(safe-area-inset-bottom, 1.5rem)",
+            }}
           >
-            {/* Handle bar */}
-            <div className="flex justify-center -mt-2 pb-3">
-              <div className="h-1.5 w-12 rounded-full bg-slate-200" />
+            <div className="flex justify-center pt-3 pb-2">
+              <div className="h-1 w-12 rounded-full bg-slate-200" />
             </div>
-
-            <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
-              <h3 className="text-base font-extrabold text-[#0F172A]">
-                Hapus semua data?
-              </h3>
-              <button
-                onClick={() => setShowClearConfirm(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 transition-colors"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <p className="mb-6 text-sm font-medium text-slate-500">
-              Semua transaksi dan riwayat pengeluaran lokal akan dihapus secara
-              permanen. Tindakan ini tidak dapat dibatalkan.
-            </p>
-
-            <div className="flex gap-3">
-              <button
-                onClick={() => setShowClearConfirm(false)}
-                className="flex-1 rounded-2xl border border-slate-200 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 cursor-pointer"
-              >
-                Batal
-              </button>
-              <button
-                onClick={handleClearData}
-                className="flex-1 rounded-2xl bg-rose-500 py-3 text-sm font-extrabold text-white shadow-md shadow-rose-500/25 hover:bg-rose-600 active:scale-[0.98] transition-all cursor-pointer"
-              >
-                Hapus Semua
-              </button>
+            <div className="px-6 pb-6">
+              <div className="text-center mb-5">
+                <Trash2 className="mx-auto h-10 w-10 mb-3 text-rose-500" />
+                <h3 className="text-base font-extrabold text-[#0F172A]">Hapus semua data?</h3>
+                <p className="mt-2 text-sm font-semibold text-slate-500">
+                  Semua transaksi lokal akan dihapus permanen. Tindakan ini tidak bisa dibatalkan.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  className="flex-1 rounded-[var(--radius)] border-2 border-slate-200 py-3.5 text-sm font-bold text-slate-500 hover:bg-slate-50 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={handleClearData}
+                  className="flex-1 rounded-[var(--radius)] py-3.5 text-sm font-extrabold text-white cursor-pointer bg-rose-500"
+                  style={{ boxShadow: "0 4px 14px rgba(239,68,68,0.4)" }}
+                >
+                  Hapus Semua
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* PWA Install Modal */}
       <PwaInstallModal />
     </div>
   );
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
+function SectionTitle({
+  children,
+  icon: Icon,
+}: {
+  children: React.ReactNode;
+  icon: React.ComponentType<{ className?: string }>;
+}) {
   return (
-    <h2 className="mb-2 px-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+    <h2 className="mb-2.5 px-1 flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+      <div className="flex h-5 w-5 items-center justify-center rounded-md bg-violet-100">
+        <Icon className="h-3 w-3 text-violet-600" />
+      </div>
       {children}
     </h2>
   );
@@ -371,33 +397,42 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 function SettingsRow({
   icon: Icon,
   label,
+  sublabel,
   onClick,
   destructive = false,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   label: string;
+  sublabel?: string;
   onClick: () => void;
   destructive?: boolean;
 }) {
   return (
     <button
       onClick={onClick}
-      className={cn(
-        "flex w-full items-center gap-3.5 px-5 py-3.5 text-sm font-bold transition-colors hover:bg-slate-50 cursor-pointer",
-        destructive ? "text-rose-500" : "text-[#0F172A]",
-      )}
+      className="flex w-full items-center gap-3.5 px-5 py-3.5 text-sm transition-colors hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-b-0"
     >
       <div
         className={cn(
-          "flex h-8 w-8 items-center justify-center rounded-xl",
-          destructive
-            ? "bg-rose-50 text-rose-500"
-            : "bg-slate-100 text-slate-600",
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl",
+          destructive ? "bg-rose-50" : "bg-violet-50"
         )}
       >
-        <Icon className="h-4 w-4 shrink-0" />
+        <Icon
+          className={cn(
+            "h-4 w-4",
+            destructive ? "text-rose-500" : "text-violet-600"
+          )}
+        />
       </div>
-      <span className="flex-1 text-left">{label}</span>
+      <div className="flex-1 text-left">
+        <div className={cn("text-sm font-bold", destructive ? "text-rose-500" : "text-[#0F172A]")}>
+          {label}
+        </div>
+        {sublabel && (
+          <div className="text-xs font-semibold text-slate-400 mt-0.5">{sublabel}</div>
+        )}
+      </div>
       <ChevronRight className="h-4 w-4 text-slate-300" />
     </button>
   );

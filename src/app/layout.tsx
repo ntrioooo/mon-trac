@@ -7,21 +7,23 @@ import "./globals.css";
 const plusJakartaSans = Plus_Jakarta_Sans({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-plus-jakarta-sans",
+  variable: "--font-jakarta",
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const metadata: Metadata = {
-  title: "IngatMiskin",
-  description: "Catat pengeluaran harian dengan cepat dan mudah",
+  title: "JagaJajan",
+  description:
+    "Catat jajan harianmu dengan gaya — kelola dompet, pemasukan, dan pengeluaran dalam satu app",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/icons/icon-logo.png",
-    apple: "/icons/icon-logo.png",
+    icon: "/icons/logo-baru.png",
+    apple: "/icons/logo-baru.png",
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "IngatMiskin",
+    title: "JagaJajan",
   },
 };
 
@@ -30,7 +32,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#F8FAFC",
+  themeColor: "#DDD6FE",
 };
 
 export default function RootLayout({
@@ -40,7 +42,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="id" className={plusJakartaSans.variable}>
-      <body className="min-h-dvh bg-[var(--color-background)] font-sans antialiased text-[var(--color-foreground)]">
+      <body className="min-h-dvh bg-[var(--color-background)] antialiased text-[var(--color-foreground)]">
         <SessionProvider>
           <PwaRegister />
           {children}

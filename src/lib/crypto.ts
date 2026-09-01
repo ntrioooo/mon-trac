@@ -283,3 +283,33 @@ export async function decryptText(
   if (ciphertext.startsWith("enc:v2:")) return universalDecrypt(ciphertext, userSecret);
   return ciphertext;
 }
+
+/**
+ * Encrypt any JSON-serializable object into ciphertext.
+ */
+export async function encryptObject<T>(
+  data: T,
+  userSecret: string
+): Promise<string> {
+  const jsonStr = JSON.stringify(data);
+  return universalEncrypt(jsonStr, userSecret);
+}
+
+/**
+ * Decrypt ciphertext back into a typed object with safe fallback.
+ */
+export async function decryptObject<T>(
+  ciphertext: string | null | undefined,
+  userSecret: string,
+  fallback: T
+): Promise<T> {
+  if (!ciphertext) return fallback;
+  try {
+    const raw = await decryptText(ciphertext, userSecret);
+    if (!raw) return fallback;
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
+  }
+}
+

@@ -25,26 +25,36 @@ export function AmountInput({ value, onChange, error, type = "expense" }: Amount
 
   const formatted = value > 0 ? formatAmountInput(value) : "";
 
-  // Dynamic text size scaling so large amounts are never truncated
   const fontSizeClass =
-    formatted.length > 13
-      ? "text-2xl"
-      : formatted.length > 10
-      ? "text-3xl"
-      : formatted.length > 7
-      ? "text-4xl"
-      : "text-5xl";
+    formatted.length > 13 ? "text-2xl"
+    : formatted.length > 10 ? "text-3xl"
+    : formatted.length > 7  ? "text-4xl"
+    : "text-5xl";
 
-  const amountColor = type === "income" ? "text-emerald-600" : "text-[#0F172A]";
-  const label = type === "income" ? "Nominal Pemasukan" : "Nominal Pengeluaran";
+  const isIncome = type === "income";
+
+  // Unified: violet for expense, emerald for income — but both clean/minimal
+  const label = isIncome ? "NOMINAL PEMASUKAN" : "NOMINAL PENGELUARAN";
+  const labelColor = isIncome ? "#10B981" : "#7C3AED";
+  const amountColor = value === 0 ? "#CBD5E1" : isIncome ? "#10B981" : "#7C3AED";
 
   return (
-    <div className="w-full text-center py-2">
-      <div className="mb-1 text-[11px] font-bold uppercase tracking-wider text-slate-400">
+    <div className="w-full rounded-2xl bg-violet-50 py-5 px-4 text-center"
+      style={isIncome ? { backgroundColor: "#F0FDF4" } : { backgroundColor: "#F5F3FF" }}
+    >
+      <p
+        className="mb-2 text-[10px] font-bold tracking-widest"
+        style={{ color: labelColor }}
+      >
         {label}
-      </div>
-      <div className="flex w-full items-baseline justify-center gap-1.5 px-2">
-        <span className={cn("text-xl sm:text-2xl font-bold shrink-0", amountColor)}>Rp</span>
+      </p>
+      <div className="flex w-full items-baseline justify-center gap-1.5">
+        <span
+          className="text-xl font-bold shrink-0"
+          style={{ color: amountColor }}
+        >
+          Rp
+        </span>
         <input
           ref={inputRef}
           type="text"
@@ -53,14 +63,19 @@ export function AmountInput({ value, onChange, error, type = "expense" }: Amount
           onChange={handleChange}
           placeholder="0"
           className={cn(
-            "w-full max-w-[280px] border-none bg-transparent text-center font-extrabold tabular-nums tracking-tight placeholder:text-slate-200 focus:outline-none transition-all",
-            fontSizeClass,
-            amountColor
+            "w-full max-w-[260px] border-none bg-transparent text-center font-bold tabular-nums tracking-tight focus:outline-none",
+            fontSizeClass
           )}
+          style={{ color: amountColor }}
           autoComplete="off"
         />
       </div>
-      {error && <p className="mt-1 text-xs font-semibold text-rose-500">{error}</p>}
+      {value === 0 && (
+        <p className="mt-1.5 text-[10px] text-slate-400">
+          Ketuk angka untuk mengisi nominal
+        </p>
+      )}
+      {error && <p className="mt-1 text-xs font-bold text-rose-500">{error}</p>}
     </div>
   );
 }

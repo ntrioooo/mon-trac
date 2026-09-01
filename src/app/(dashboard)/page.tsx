@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useSession } from "next-auth/react";
-import { Calendar, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { useTransactionStore } from "@/stores/transaction-store";
 import { useCategoryStore } from "@/stores/category-store";
 import { useSettingsStore } from "@/stores/settings-store";
@@ -25,9 +25,27 @@ import {
   calculateBudgetPercentage,
   getBudgetStatus,
 } from "@/lib/calculations/budget-calculations";
-import { getGreeting, cn } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { syncEngine } from "@/lib/sync-engine";
 import type { Transaction } from "@/types/transaction";
+
+function getGreetingEmoji(): string {
+  const h = new Date().getHours();
+  if (h < 5) return "🌙";
+  if (h < 12) return "☀️";
+  if (h < 17) return "🌤️";
+  if (h < 21) return "🌅";
+  return "🌙";
+}
+
+function getGreetingText(): string {
+  const h = new Date().getHours();
+  if (h < 5) return "Malam";
+  if (h < 12) return "Pagi";
+  if (h < 17) return "Siang";
+  if (h < 21) return "Sore";
+  return "Malam";
+}
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -39,7 +57,8 @@ export default function DashboardPage() {
 
   const [budgetOpen, setBudgetOpen] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [editTransaction, setEditTransaction] = useState<Transaction | null>(null);
+  // editTransaction kept for future use via global event
+  const [, setEditTransaction] = useState<Transaction | null>(null);
   const { toast, showToast, hideToast } = useToast();
 
   const handleRefresh = async () => {
@@ -82,51 +101,50 @@ export default function DashboardPage() {
     .slice(0, 5);
 
   const firstName = session?.user?.name?.split(" ")[0] ?? "";
-  const todayFormatted = new Intl.DateTimeFormat("id-ID", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  }).format(now);
+  const monthName = new Intl.DateTimeFormat("id-ID", { month: "long" }).format(now);
 
   return (
     <div className="min-h-dvh pb-8">
-      {/* Aurora Lavender Header */}
-      <div className="bg-aurora-header px-4 pt-6 pb-6 border-b border-violet-100/50">
+      {/* ── Playful Header ── */}
+      <div className="bg-playful-header px-4 pt-6 pb-8">
         <div className="mx-auto max-w-lg">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 shadow-xs backdrop-blur text-xs font-semibold text-slate-700">
-              <Calendar className="h-3.5 w-3.5 text-violet-600" />
-              <span>{todayFormatted}</span>
+          {/* Top row: greeting + sync */}
+          <div className="flex items-center justify-between mb-1">
+            <div>
+              <p className="text-xs font-black text-[#9AA8C8] uppercase tracking-wider">
+                {monthName} {currentYear}
+              </p>
+              <h1 className="text-xl font-black" style={{ color: "#1A2B6B" }}>
+                {getGreetingEmoji()} Halo{firstName ? `, ${firstName}` : ""}!
+              </h1>
+              <p className="text-xs font-semibold text-[#5A6A9A] mt-0.5">
+                Selamat {getGreetingText()}, semangat mengelola jajan! 💪
+              </p>
             </div>
 
             <button
               onClick={handleRefresh}
               disabled={isSyncing}
               className={cn(
-                "flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/80 shadow-xs backdrop-blur text-xs font-bold text-slate-700 hover:bg-white hover:text-violet-700 active:scale-95 transition-all cursor-pointer disabled:opacity-60",
-                isSyncing && "text-violet-600 bg-white"
+                "flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-black transition-all border-2 cursor-pointer disabled:opacity-60",
+                isSyncing
+                  ? "border-[#A8C8E8] bg-[#E0F0FB] text-[#2A6BA8]"
+                  : "border-[rgba(168,200,232,0.5)] bg-white text-[#9AA8C8] hover:border-[#1A2B6B] hover:text-[#1A2B6B]"
               )}
               aria-label="Segarkan data"
               id="btn-refresh-dashboard"
             >
               <RefreshCw
-                className={cn("h-3.5 w-3.5 text-violet-600", isSyncing && "animate-spin")}
+                className={cn("h-3.5 w-3.5", isSyncing && "animate-spin")}
               />
-              <span>{isSyncing ? "Menyinkronkan..." : "Segarkan"}</span>
+              <span>{isSyncing ? "Sinkron..." : "Segarkan"}</span>
             </button>
-          </div>
-
-          <div className="text-center">
-            <h1 className="text-sm font-bold text-slate-600">
-              {getGreeting()}
-              {firstName ? `, ${firstName}` : ""} 👋
-            </h1>
           </div>
         </div>
       </div>
 
-      {/* Main Content Body */}
-      <div className="mx-auto max-w-lg px-4 -mt-3 space-y-4">
+      {/* ── Main Content Body ── */}
+      <div className="mx-auto max-w-lg px-4 -mt-4 space-y-4">
         {/* Monthly Summary Hero Card */}
         <MonthlySummaryCard
           spending={monthlySpending}

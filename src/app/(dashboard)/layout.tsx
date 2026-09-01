@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { BottomNavigation } from "@/components/bottom-navigation";
@@ -97,10 +98,28 @@ export default function DashboardLayout({
 
   if (status === "loading" || !isReady) {
     return (
-      <div className="flex min-h-dvh items-center justify-center bg-aurora-header">
+      <div className="flex min-h-dvh flex-col items-center justify-center bg-aurora-header">
         <div className="text-center">
-          <div className="mx-auto mb-4 h-10 w-10 animate-spin rounded-full border-3 border-violet-600 border-t-transparent" />
-          <p className="text-sm font-semibold text-slate-600">Memuat MonTrac...</p>
+          {/* Logo — no emoji */}
+          <div className="relative mx-auto mb-6 flex h-20 w-20 items-center justify-center">
+            <div className="absolute inset-0 rounded-[1.5rem] bg-violet-200 opacity-40 blur-lg" />
+            <Image
+              src="/icons/logo-baru.png"
+              alt="JagaJajan"
+              width={80}
+              height={80}
+              className="relative rounded-[1.5rem] object-contain animate-float"
+              style={{ boxShadow: "0 8px 24px rgba(124,58,237,0.25)" }}
+              priority
+            />
+          </div>
+          <p className="text-base font-extrabold text-[#1E1B4B] mb-4">
+            JagaJajan
+          </p>
+          <div
+            className="mx-auto h-6 w-6 animate-spin rounded-full border-2 border-t-transparent"
+            style={{ borderColor: "#7C3AED", borderTopColor: "transparent" }}
+          />
         </div>
       </div>
     );
